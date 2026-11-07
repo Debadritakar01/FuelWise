@@ -1,179 +1,71 @@
-# ⛽ FuelWise – Smart Fuel Intelligence
+# ⚡ FuelWise – Smart Fuel Intelligence
 
-**FuelWise** is a smart vehicle fuel-management and trip-planning web application designed to help users calculate fuel consumption, estimate journey costs, compare Petrol and Electric Vehicles (EVs), and make economical travel decisions.
+**A Smart Vehicle Fuel Management and Trip Cost Analytics System**
 
-The application uses React.js for the frontend and Python FastAPI for backend calculations.
+FuelWise is a web-based vehicle fuel management and trip planning application designed to help users estimate journey costs, calculate fuel or electricity consumption, compare petrol and electric vehicles, and maintain a history of previous trips.
 
----
-
-## 🚀 Project Overview
-
-FuelWise aims to make vehicle travel more economical by providing useful information about fuel consumption, electricity consumption, trip expenses, and vehicle running costs.
-
-Users can enter their vehicle details and journey information to receive calculated results and compare petrol-powered vehicles with electric vehicles.
-
-### 🎯 Main Objectives
-
-- Calculate petrol and electricity consumption.
-- Estimate the total cost of a journey.
-- Compare Petrol and EV running costs.
-- Help users understand vehicle efficiency.
-- Provide an interactive dashboard for trip analysis.
-- Recommend economical travel options.
+The application uses React.js for the frontend, Python FastAPI for backend processing, SQLite for persistent data storage, and Recharts for data visualization.
 
 ---
 
-## ✨ Key Features
+## 🚀 Features
 
-| Feature | Description |
-|---|---|
-| Petrol Calculator | Calculates petrol consumption and trip cost. |
-| EV Calculator | Calculates electricity consumption and trip cost. |
-| Trip Cost Estimator | Estimates the total expense of a journey. |
-| EV vs Petrol Comparison | Compares running costs of both vehicle types. |
-| Cost Per KM | Calculates the running cost per kilometre. |
-| Dashboard | Displays vehicle and trip information. |
-| Trip History | Stores previous journey details (planned). |
-| Route Planning | Compares alternative routes (planned). |
-| Smart Recommendations | Suggests economical travel options (planned). |
+### 1. Trip Cost Calculator
+- Calculate petrol vehicle trip costs.
+- Calculate electric vehicle (EV) trip costs.
+- Enter custom journey distance.
+- Enter vehicle mileage or EV efficiency.
+- Enter petrol or electricity prices.
+- Display estimated energy consumption.
+- Calculate total trip cost.
+- Calculate cost per kilometre.
+
+### 2. Petrol vs Electric Vehicle Comparison
+- Compare petrol and EV running costs.
+- Calculate total cost for the same journey distance.
+- Identify the cheaper vehicle.
+- Display estimated cost savings.
+- Help users make economical travel decisions.
+
+### 3. Cost Comparison Visualization
+- Interactive cost comparison chart using Recharts.
+- Visualize petrol and EV trip expenses.
+- Compare vehicle running costs through graphical representation.
+
+### 4. SQLite Database Integration
+- Integrated SQLite database.
+- SQLAlchemy ORM for database operations.
+- Store previously calculated trip information.
+- Maintain persistent trip records.
+- Automatically create database tables when configured in the backend.
+
+### 5. Trip History Management
+- Display previously saved trips.
+- Retrieve trip records from the FastAPI backend.
+- Display total number of saved trips.
+- Calculate total estimated trip expenses.
+- Calculate total distance travelled.
+- Display vehicle type, distance, cost and date.
+- Delete unwanted trip records.
+- Refresh the trip history.
 
 ---
 
 ## 🛠️ Technology Stack
 
-### Frontend
-- React.js
-- Vite
-- HTML5
-- CSS3
-- JavaScript
-
-### Backend
-- Python
-- FastAPI
-- Uvicorn
-- Pydantic
-
-### Database (Planned)
-- SQLite
-- PostgreSQL (future enhancement)
-
-### Data Visualization (Planned)
-- Recharts / Chart.js
-
-### Development Tools
-- Visual Studio Code
-- Git
-- GitHub
-- Postman / FastAPI Swagger UI
-
----
-
-## 🏗️ Project Architecture
-
-FuelWise follows a frontend-backend architecture.
-
-```text
-             USER
-               |
-               v
-       REACT FRONTEND
-          (Vite)
-               |
-               | HTTP Requests
-               v
-        FASTAPI BACKEND
-               |
-               v
-       CALCULATION ENGINE
-               |
-          -------------
-          |           |
-          v           v
-     PETROL CALC     EV CALC
-          |           |
-          ------------- 
-               |
-               v
-       CALCULATED RESULTS
-               |
-               v
-        REACT DASHBOARD
-```
-
----
-
-## 🧮 Calculation Logic
-
-FuelWise uses mathematical formulas to calculate vehicle consumption and running costs.
-
-### 1. Petrol Calculation
-
-**Fuel Consumption:**
-
-Fuel Used (Litres) = Distance (KM) / Mileage (KM/L)
-
-**Total Cost:**
-
-Total Cost = Fuel Used × Petrol Price
-
-**Cost Per KM:**
-
-Cost Per KM = Total Cost / Distance
-
-Example:
-
-- Distance: 100 KM
-- Mileage: 45 KM/L
-- Petrol Price: ₹105/L
-
-Result:
-
-- Fuel Used: 2.22 Litres
-- Total Cost: ₹233.33
-- Cost Per KM: ₹2.33
-
-### 2. Electric Vehicle Calculation
-
-**Energy Consumption:**
-
-Energy Used (KWh) = Distance (KM) / Efficiency (KM/KWh)
-
-**Total Cost:**
-
-Total Cost = Energy Used × Electricity Price
-
-**Cost Per KM:**
-
-Cost Per KM = Total Cost / Distance
-
-Example:
-
-- Distance: 100 KM
-- Efficiency: 40 KM/KWh
-- Electricity Price: ₹8/KWh
-
-Result:
-
-- Energy Used: 2.5 KWh
-- Total Cost: ₹20
-- Cost Per KM: ₹0.20
-
-### 3. EV vs Petrol Comparison
-
-For the same 100 KM journey:
-
-| Parameter | Petrol | Electric |
-|---|---:|---:|
-| Distance | 100 KM | 100 KM |
-| Efficiency | 45 KM/L | 40 KM/KWh |
-| Fuel/Energy Used | 2.22 L | 2.5 KWh |
-| Unit Price | ₹105/L | ₹8/KWh |
-| Total Cost | ₹233.33 | ₹20 |
-
-**Estimated EV Savings: ₹213.33**
-
-*Note: These are illustrative estimates based on the supplied fuel prices and vehicle efficiencies.*
+| Technology | Purpose |
+|---|---|
+| HTML5 | Web structure |
+| CSS3 | Styling and responsive UI |
+| JavaScript | Frontend functionality |
+| React.js | Frontend development |
+| Vite | Frontend development server |
+| Python | Backend programming |
+| FastAPI | REST API development |
+| SQLite | Database management |
+| SQLAlchemy | ORM and database operations |
+| Recharts | Data visualization |
+| Git & GitHub | Version control |
 
 ---
 
@@ -183,50 +75,47 @@ For the same 100 KM journey:
 FuelWise/
 │
 ├── frontend/
+│   ├── public/
+│   │
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── VehicleForm.jsx
-│   │   │   ├── TripForm.jsx
-│   │   │   └── ResultCard.jsx
-│   │   │
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Compare.jsx
-│   │   │   └── TripHistory.jsx
-│   │   │
-│   │   ├── services/
-│   │   │   └── api.js
+│   │   │   ├── CostComparisonChart.jsx
+│   │   │   ├── TripHistory.jsx
+│   │   │   └── TripHistory.css
 │   │   │
 │   │   ├── App.jsx
-│   │   └── App.css
+│   │   ├── App.css
+│   │   ├── index.css
+│   │   └── main.jsx
 │   │
-│   └── package.json
+│   ├── package.json
+│   ├── package-lock.json
+│   └── vite.config.js
 │
 ├── backend/
-│   ├── main.py
 │   ├── services/
 │   │   └── calculations.py
 │   │
-│   ├── test_calculations.py
-│   └── requirements.txt
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   ├── requirements.txt
+│   └── fuelwise.db
 │
 └── README.md
 ```
 
-*The structure above represents the intended organization; some folders and files are planned for later development.*
+*Note: The structure shows the current documented files. The SQLite database file is generated by the backend when database initialization runs.*
 
 ---
 
 ## ⚙️ Installation and Setup
 
-Follow these steps to run FuelWise locally.
-
 ### Prerequisites
 
-Install the following software:
+Install the following:
 
-- Python
+- Python 3
 - Node.js and npm
 - Visual Studio Code
 - Git
@@ -235,15 +124,56 @@ Install the following software:
 
 ```bash
 git clone YOUR_GITHUB_REPOSITORY_URL
-```
-
-```bash
 cd FuelWise
 ```
 
-### 2. Setup Frontend
+### 2. Setup Backend
 
-Navigate to the frontend directory:
+Open a terminal:
+
+```bash
+cd backend
+```
+
+Create a virtual environment:
+
+```bash
+python -m venv venv
+```
+
+Activate it on Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Start the FastAPI server:
+
+```bash
+uvicorn main:app --reload
+```
+
+Backend URL:
+
+```text
+http://127.0.0.1:8000
+```
+
+Swagger API documentation:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### 3. Setup Frontend
+
+Open another terminal:
 
 ```bash
 cd frontend
@@ -255,7 +185,7 @@ Install dependencies:
 npm install
 ```
 
-Start the development server:
+Start the React development server:
 
 ```bash
 npm run dev
@@ -267,176 +197,174 @@ Frontend URL:
 http://localhost:5173
 ```
 
-### 3. Setup Backend
-
-Open another terminal and navigate to the backend directory:
-
-```bash
-cd backend
-```
-
-Create a Python virtual environment:
-
-```bash
-python -m venv venv
-```
-
-Activate the environment on Windows PowerShell:
-
-```powershell
-venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
-pip install fastapi uvicorn pydantic
-```
-
-Start the FastAPI server:
-
-```bash
-python -m uvicorn main:app --reload
-```
-
-Backend URL:
-
-```text
-http://127.0.0.1:8000
-```
-
-### 4. Access API Documentation
-
-FastAPI provides interactive API documentation through Swagger UI.
-
-```text
-http://127.0.0.1:8000/docs
-```
-
 ---
 
-## 🔌 Backend API Endpoints
+## 🔗 Backend API Endpoints
 
-The following endpoints are part of the planned API design.
-
-| Method | Endpoint | Purpose |
+| Method | Endpoint | Description |
 |---|---|---|
 | GET | `/` | Check backend status |
 | GET | `/health` | Health check |
 | POST | `/api/trip/estimate` | Calculate individual trip cost |
-| POST | `/api/compare` | Compare Petrol and EV costs |
-| GET | `/api/trips` | Retrieve trip history (planned) |
-| POST | `/api/route/compare` | Compare alternative routes (planned) |
-
-### Example: Petrol Trip Request
-
-```json
-{
-  "vehicle_type": "petrol",
-  "distance": 100,
-  "mileage": 45,
-  "petrol_price": 105
-}
-```
-
-### Example: EV Trip Request
-
-```json
-{
-  "vehicle_type": "ev",
-  "distance": 100,
-  "efficiency": 40,
-  "electricity_price": 8
-}
-```
-
-### Example: EV vs Petrol Comparison Request
-
-```json
-{
-  "distance": 100,
-  "mileage": 45,
-  "petrol_price": 105,
-  "efficiency": 40,
-  "electricity_price": 8
-}
-```
-
-*These are the intended request formats. Verify the corresponding API route implementations in `main.py` before treating all endpoints as operational.*
+| POST | `/api/compare` | Compare petrol and EV costs |
+| POST | `/api/trips/save` | Save trip information |
+| GET | `/api/trips` | Retrieve saved trips |
+| GET | `/api/trips/{trip_id}` | Retrieve individual trip details |
+| DELETE | `/api/trips/{trip_id}` | Delete a saved trip |
 
 ---
 
-## 🧪 Testing
+## 🗄️ Database Integration
 
-The calculation engine can be tested using:
+FuelWise uses SQLite for persistent trip storage.
 
-```bash
-python test_calculations.py
+SQLAlchemy is used as the Object Relational Mapper (ORM) to interact with the database.
+
+### Trip Records
+
+The trip history stores information such as:
+
+- Trip ID
+- Vehicle type
+- Distance travelled
+- Total estimated cost
+- Cost per kilometre
+- Trip creation date
+
+### Database Operations
+
+1. Save calculated trip information.
+2. Retrieve all saved trips.
+3. Retrieve an individual trip using its ID.
+4. Delete a trip from the database.
+
+---
+
+## 📊 Trip History Dashboard
+
+The React Trip History component is integrated into the main `App.jsx` layout.
+
+It displays three summary statistics:
+
+| Summary | Description |
+|---|---|
+| Total Trips | Number of saved trips |
+| Total Estimated Cost | Combined cost of saved trips |
+| Total Distance | Combined distance of saved trips |
+
+### Trip History Table
+
+The table displays:
+
+- Trip ID
+- Vehicle type
+- Distance
+- Total cost
+- Cost per kilometre
+- Date
+- Delete action
+
+The component fetches saved records from the FastAPI backend and updates the displayed list after successful deletion.
+
+---
+
+## 🧮 Calculation Formulas
+
+### Petrol Vehicle
+
+Fuel consumed:
+
+```text
+Fuel Used = Distance / Mileage
 ```
 
-### Verified Test Results
+Total trip cost:
 
-| Test Case | Expected Result | Status |
-|---|---:|---|
-| Petrol calculation (100 KM) | ₹233.33 | Passed |
-| EV calculation (100 KM) | ₹20.00 | Passed |
-| Petrol cost per KM | ₹2.33 | Passed |
-| EV cost per KM | ₹0.20 | Passed |
+```text
+Total Cost = Fuel Used × Petrol Price
+```
 
-Input validation is also included to reject zero or negative calculation values.
+### Electric Vehicle
+
+Electricity consumed:
+
+```text
+Energy Used = Distance / EV Efficiency
+```
+
+Total trip cost:
+
+```text
+Total Cost = Energy Used × Electricity Price
+```
+
+### Cost Per Kilometre
+
+```text
+Cost Per KM = Total Cost / Distance
+```
+
+---
+
+## 🧪 Example Calculation
+
+Assume a journey distance of 100 km.
+
+| Parameter | Petrol | Electric |
+|---|---:|---:|
+| Distance | 100 km | 100 km |
+| Mileage / Efficiency | 45 km/L | 40 km/kWh |
+| Energy Price | ₹105/L | ₹8/kWh |
+| Total Cost | ₹233.33 | ₹20.00 |
+
+**Illustrative result:** The EV costs approximately ₹213.33 less for this journey under the given assumptions.
 
 ---
 
 ## 📈 Development Progress
 
-- [x] Python virtual environment setup
-- [x] FastAPI backend setup
-- [x] Backend homepage API
-- [x] Backend health-check API
-- [x] Petrol calculation function
-- [x] EV calculation function
-- [x] Calculation testing
-- [ ] Complete and verify trip estimation API
-- [ ] Complete and verify EV vs Petrol comparison API
-- [ ] React frontend integration
-- [ ] Dashboard development
-- [ ] Data visualization
-- [ ] Database integration
-- [ ] Trip history management
-- [ ] Google Maps integration
-- [ ] Smart recommendations
+| Development Stage | Feature | Status |
+|---|---|---|
+| Step 1 | Project setup | Completed |
+| Step 2 | React frontend | Completed |
+| Step 3 | FastAPI backend | Completed |
+| Step 4 | Petrol cost calculation | Completed |
+| Step 5 | EV cost calculation | Completed |
+| Step 6 | Petrol vs EV comparison | Completed |
+| Step 6.5 | Recharts visualization | Completed |
+| Step 7.1 | SQLite integration | Completed |
+| Step 7.2 | Trip history backend APIs | Completed |
+| Step 7.3 | React Trip History integration | Implemented |
+| Step 7.4 | View Trip Details | Upcoming |
 
 ---
 
 ## 🔮 Future Enhancements
 
-The following features are planned to make FuelWise more intelligent and useful.
-
-1. **Database Integration:** Store vehicle information and previous journeys using SQLite or PostgreSQL.
-2. **Interactive Dashboard:** Display trip expenses, vehicle efficiency, and consumption statistics using charts.
-3. **Google Maps Integration:** Calculate route distances and compare alternative routes.
-4. **Smart Recommendations:** Recommend economical travel options using rule-based logic.
-5. **Fuel Price Integration:** Retrieve updated fuel prices through an external data source.
-6. **Range Estimation:** Estimate the remaining travel range using fuel or battery information.
-7. **Trip History:** Allow users to save and review previous journeys.
-8. **AI-Based Analysis:** Explore intelligent fuel expense predictions and travel recommendations.
-
----
-
-## 🎯 Project Goal
-
-The ultimate goal of FuelWise is to develop an intelligent fuel and vehicle expense management platform that helps users understand their vehicle's efficiency, compare running costs, and plan more economical journeys.
+- View complete individual trip details.
+- Add automatic trip saving after calculation.
+- Add trip editing functionality.
+- Add advanced analytics dashboard.
+- Add monthly and yearly expense reports.
+- Add fuel consumption history charts.
+- Add user authentication.
+- Add vehicle management.
+- Add Google Maps route integration.
+- Add fuel station and EV charging station information.
+- Add intelligent fuel-saving recommendations.
+- Deploy the application online.
 
 ---
 
-## 👩‍💻 Developer
+## 🎯 Project Objective
 
-**Debadrita Kar**
-
-B.Tech – Computer Science and Engineering
-
-Siliguri Institute of Technology
+The main objective of FuelWise is to develop an intelligent vehicle fuel management and trip analytics platform that helps users understand their vehicle running expenses, compare petrol and electric vehicle costs, and manage previous journey records efficiently.
 
 ---
 
-*FuelWise – Make Every Journey More Economical! ⛽⚡*
+## 👩‍💻 Developed With
+
+**FuelWise – Smart Fuel Intelligence**
+
+Developed as a learning and final-year project using React.js, FastAPI, Python, SQLite, SQLAlchemy and Recharts.
+
