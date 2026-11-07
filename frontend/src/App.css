@@ -330,3 +330,88 @@ footer {
   text-align: center;
   color: #1f2937;
 }
+
+/* Fix FuelWise input visibility and typing */
+
+input,
+select,
+textarea {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+  caret-color: #16a34a;
+  pointer-events: auto;
+  user-select: text;
+  cursor: text;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+/* Ensure labels and form text remain visible */
+label {
+  color: #1f2937;
+}
+
+/* =====================================
+   FUELWISE - INPUT VISIBILITY FIX
+===================================== */
+
+.planner .field input {
+  display: block !important;
+  width: 100%;
+  box-sizing: border-box;
+
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+
+  opacity: 1 !important;
+  caret-color: #16a34a !important;
+
+  pointer-events: auto !important;
+  user-select: text !important;
+
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+
+  padding: 18px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Placeholder visibility */
+.planner .field input::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+/* Input focus */
+.planner .field input:focus {
+  outline: none !important;
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+/* Input labels */
+.planner .field label {
+  color: #1f2937 !important;
+}
+
+/* Prevent disabled-looking inputs */
+.planner .field input:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}

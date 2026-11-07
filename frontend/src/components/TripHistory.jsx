@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import "./TripHistory.css";
+import TripDetails from "./TripDetails";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -8,6 +9,7 @@ function TripHistory() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedTripId, setSelectedTripId] = useState(null);
 
   // Fetch saved trips
   const fetchTrips = async () => {
@@ -60,13 +62,22 @@ function TripHistory() {
         previousTrips.filter((trip) => trip.id !== tripId)
       );
 
+      // Close details if the deleted trip was open
+      if (selectedTripId === tripId) {
+        setSelectedTripId(null);
+      }
+
     } catch (err) {
       alert(err.message);
     }
   };
 
   if (loading) {
-    return <div className="history-loading">Loading trip history...</div>;
+    return (
+      <div className="history-loading">
+        Loading trip history...
+      </div>
+    );
   }
 
   if (error) {
@@ -87,12 +98,17 @@ function TripHistory() {
           <p>View and manage your previously saved trips.</p>
         </div>
 
-        <button onClick={fetchTrips} className="refresh-btn">
+        <button
+          onClick={fetchTrips}
+          className="refresh-btn"
+        >
           Refresh
         </button>
       </div>
 
+      {/* Summary Cards */}
       <div className="history-summary">
+
         <div className="summary-card">
           <h3>{trips.length}</h3>
           <p>Total Trips</p>
@@ -101,7 +117,8 @@ function TripHistory() {
         <div className="summary-card">
           <h3>
             ₹{trips.reduce(
-              (total, trip) => total + Number(trip.total_cost || 0),
+              (total, trip) =>
+                total + Number(trip.total_cost || 0),
               0
             ).toFixed(2)}
           </h3>
@@ -111,21 +128,28 @@ function TripHistory() {
         <div className="summary-card">
           <h3>
             {trips.reduce(
-              (total, trip) => total + Number(trip.distance_km || 0),
+              (total, trip) =>
+                total + Number(trip.distance_km || 0),
               0
             ).toFixed(2)} km
           </h3>
           <p>Total Distance</p>
         </div>
+
       </div>
 
+      {/* Trip List */}
       {trips.length === 0 ? (
+
         <div className="empty-history">
           <h3>No Trips Found</h3>
           <p>Your saved trips will appear here.</p>
         </div>
+
       ) : (
+
         <div className="history-table-wrapper">
+
           <table className="history-table">
 
             <thead>
@@ -141,21 +165,30 @@ function TripHistory() {
             </thead>
 
             <tbody>
+
               {trips.map((trip) => (
+
                 <tr key={trip.id}>
+
                   <td>#{trip.id}</td>
 
                   <td>
-                    <span className={`vehicle-badge ${trip.vehicle_type}`}>
+                    <span
+                      className={`vehicle-badge ${trip.vehicle_type}`}
+                    >
                       {trip.vehicle_type.toUpperCase()}
                     </span>
                   </td>
 
                   <td>{trip.distance_km} km</td>
 
-                  <td>₹{Number(trip.total_cost).toFixed(2)}</td>
+                  <td>
+                    ₹{Number(trip.total_cost || 0).toFixed(2)}
+                  </td>
 
-                  <td>₹{Number(trip.cost_per_km).toFixed(2)}</td>
+                  <td>
+                    ₹{Number(trip.cost_per_km || 0).toFixed(2)}
+                  </td>
 
                   <td>
                     {trip.created_at
@@ -164,19 +197,43 @@ function TripHistory() {
                   </td>
 
                   <td>
-                    <button
-                      className="delete-btn"
-                      onClick={() => deleteTrip(trip.id)}
-                    >
-                      Delete
-                    </button>
+                    <div className="history-actions">
+
+                      <button
+                        className="view-details-btn"
+                        onClick={() => setSelectedTripId(trip.id)}
+                      >
+                        View Details
+                      </button>
+
+                      <button
+                        className="delete-btn"
+                        onClick={() => deleteTrip(trip.id)}
+                      >
+                        Delete
+                      </button>
+
+                    </div>
                   </td>
+
                 </tr>
+
               ))}
+
             </tbody>
 
           </table>
+
         </div>
+
+      )}
+
+      {/* Trip Details Modal */}
+      {selectedTripId !== null && (
+        <TripDetails
+          tripId={selectedTripId}
+          onClose={() => setSelectedTripId(null)}
+        />
       )}
 
     </div>

@@ -138,3 +138,39 @@
     flex-direction: column;
   }
 }
+
+/* Trip History Action Buttons */
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.view-details-btn {
+  background: #e8f5ed;
+  color: #176b43;
+  border: 1px solid #b8dfc5;
+  padding: 9px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: 0.2s ease;
+}
+
+.view-details-btn:hover {
+  background: #176b43;
+  color: white;
+}
+
+.history-actions .delete-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .history-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

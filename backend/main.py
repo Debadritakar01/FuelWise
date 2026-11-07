@@ -309,6 +309,37 @@ def get_trip_by_id(
         )
     }
 
+@app.get("/api/trips/{trip_id}")
+def get_trip_details(
+    trip_id: int,
+    db: Session = Depends(get_db)
+):
+    trip = db.query(Trip).filter(Trip.id == trip_id).first()
+
+    if not trip:
+        raise HTTPException(
+            status_code=404,
+            detail="Trip not found"
+        )
+
+    return {
+        "id": trip.id,
+        "vehicle_type": trip.vehicle_type,
+        "distance_km": trip.distance_km,
+        "mileage": trip.mileage,
+        "petrol_price": trip.petrol_price,
+        "efficiency": trip.efficiency,
+        "electricity_price": trip.electricity_price,
+        "fuel_used_litres": trip.fuel_used_litres,
+        "energy_used_kwh": trip.energy_used_kwh,
+        "total_cost": trip.total_cost,
+        "cost_per_km": trip.cost_per_km,
+        "created_at": (
+            trip.created_at.isoformat()
+            if trip.created_at else None
+        )
+    }
+
 
 # API 6: Delete a saved trip
 @app.delete("/api/trips/{trip_id}")
