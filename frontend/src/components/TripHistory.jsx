@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import "./TripHistory.css";
 import TripDetails from "./TripDetails";
+import EditTrip from "./EditTrip";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -10,6 +11,7 @@ function TripHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [editingTrip, setEditingTrip] = useState(null);
 
   // Fetch saved trips
   const fetchTrips = async () => {
@@ -33,7 +35,6 @@ function TripHistory() {
     }
   };
 
-  // Load trips when component mounts
   useEffect(() => {
     fetchTrips();
   }, []);
@@ -62,14 +63,23 @@ function TripHistory() {
         previousTrips.filter((trip) => trip.id !== tripId)
       );
 
-      // Close details if the deleted trip was open
       if (selectedTripId === tripId) {
         setSelectedTripId(null);
+      }
+
+      if (editingTrip?.id === tripId) {
+        setEditingTrip(null);
       }
 
     } catch (err) {
       alert(err.message);
     }
+  };
+
+  // Handle successful trip update
+  const handleTripUpdated = async () => {
+    setEditingTrip(null);
+    await fetchTrips();
   };
 
   if (loading) {
@@ -98,10 +108,7 @@ function TripHistory() {
           <p>View and manage your previously saved trips.</p>
         </div>
 
-        <button
-          onClick={fetchTrips}
-          className="refresh-btn"
-        >
+        <button onClick={fetchTrips} className="refresh-btn">
           Refresh
         </button>
       </div>
@@ -201,9 +208,22 @@ function TripHistory() {
 
                       <button
                         className="view-details-btn"
-                        onClick={() => setSelectedTripId(trip.id)}
+                        onClick={() => {
+                          setEditingTrip(null);
+                          setSelectedTripId(trip.id);
+                        }}
                       >
                         View Details
+                      </button>
+
+                      <button
+                        className="edit-btn"
+                        onClick={() => {
+                          setSelectedTripId(null);
+                          setEditingTrip(trip);
+                        }}
+                      >
+                        Edit
                       </button>
 
                       <button
@@ -226,6 +246,15 @@ function TripHistory() {
 
         </div>
 
+      )}
+
+      {/* Edit Trip Form */}
+      {editingTrip && (
+        <EditTrip
+          trip={editingTrip}
+          onUpdated={handleTripUpdated}
+          onCancel={() => setEditingTrip(null)}
+        />
       )}
 
       {/* Trip Details Modal */}
