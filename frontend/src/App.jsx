@@ -1,4 +1,5 @@
 
+import TripHistory from "./components/TripHistory";
 import { useState } from "react";
 import CostComparisonChart from "./components/CostComparisonChart";
 import "./App.css";
@@ -411,11 +412,14 @@ function App() {
               running energy cost only.
             </p>
 
-            {/* NEW: Cost Comparison Chart */}
+            {/* Cost Comparison Chart */}
             <CostComparisonChart comparison={comparison} />
 
           </section>
         )}
+
+        {/* NEW: Trip History Section */}
+        <TripHistory />
 
         {/* Footer */}
         <footer>
