@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import "./TripHistory.css";
 import TripDetails from "./TripDetails";
 import EditTrip from "./EditTrip";
+import MonthlyAnalytics from "./MonthlyAnalytics";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -10,8 +11,15 @@ function TripHistory() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [selectedTripId, setSelectedTripId] = useState(null);
-  const [editingTrip, setEditingTrip] = useState(null);
+  const [editingTripId, setEditingTripId] = useState(null);
+
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [vehicleFilter, setVehicleFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // Fetch saved trips
   const fetchTrips = async () => {
@@ -67,8 +75,8 @@ function TripHistory() {
         setSelectedTripId(null);
       }
 
-      if (editingTrip?.id === tripId) {
-        setEditingTrip(null);
+      if (editingTripId === tripId) {
+        setEditingTripId(null);
       }
 
     } catch (err) {
@@ -78,10 +86,187 @@ function TripHistory() {
 
   // Handle successful trip update
   const handleTripUpdated = async () => {
-    setEditingTrip(null);
+    setEditingTripId(null);
     await fetchTrips();
   };
 
+  // Convert date into local YYYY-MM-DD format
+  const getLocalDate = (dateValue) => {
+    if (!dateValue) return "";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  // Search and filter trips
+  const filteredTrips = trips.filter((trip) => {
+    const search = searchTerm.toLowerCase().trim();
+
+    const matchesSearch =
+      String(trip.id).toLowerCase().includes(search) ||
+      String(trip.vehicle_type || "").toLowerCase().includes(search) ||
+      String(trip.distance_km || "").toLowerCase().includes(search);
+
+    const matchesVehicle =
+      vehicleFilter === "all" ||
+      String(trip.vehicle_type || "").toLowerCase() === vehicleFilter;
+
+    const tripDate = getLocalDate(trip.created_at);
+
+    const matchesStartDate =
+      !startDate || (tripDate && tripDate >= startDate);
+
+    const matchesEndDate =
+      !endDate || (tripDate && tripDate <= endDate);
+
+    return (
+      matchesSearch &&
+      matchesVehicle &&
+      matchesStartDate &&
+      matchesEndDate
+    );
+  });
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm("");
+    setVehicleFilter("all");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  // ==========================================
+  // EXPORT TRIP HISTORY AS CSV
+  // ==========================================
+
+  const exportTripsToCSV = () => {
+    if (trips.length === 0) {
+      alert("No trips available to export.");
+      return;
+    }
+
+    const headers = [
+      "Trip ID",
+      "Vehicle Type",
+      "Distance (KM)",
+      "Mileage / Efficiency",
+      "Fuel / Energy Consumed",
+      "Total Cost (INR)",
+      "Cost Per KM (INR)",
+      "Created At"
+    ];
+
+    // Escape CSV values safely
+    const escapeCSV = (value) => {
+      const safeValue = String(value ?? "");
+      return `"${safeValue.replace(/"/g, '""')}"`;
+    };
+
+    // Prepare trip records
+    const rows = trips.map((trip) => [
+      trip.id,
+      trip.vehicle_type,
+      trip.distance_km,
+      trip.mileage ?? trip.efficiency ?? "",
+      trip.fuel_consumed ?? trip.energy_consumed ?? "",
+      trip.total_cost,
+      trip.cost_per_km,
+      trip.created_at
+        ? new Date(trip.created_at).toLocaleString()
+        : ""
+    ]);
+
+    // Generate CSV content
+    const csvContent = [
+      headers.map(escapeCSV).join(","),
+      ...rows.map((row) =>
+        row.map(escapeCSV).join(",")
+      )
+    ].join("\n");
+
+    // Create downloadable CSV file
+    const blob = new Blob(
+      ["\uFEFF" + csvContent],
+      { type: "text/csv;charset=utf-8;" }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    const today = getLocalDate(new Date());
+
+    link.href = url;
+    link.download = `FuelWise_Trip_History_${today}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  };
+
+  // ==========================================
+  // DASHBOARD ANALYTICS
+  // ==========================================
+
+  // Separate petrol and EV trips
+  const petrolTrips = trips.filter(
+    (trip) =>
+      String(trip.vehicle_type || "").toLowerCase() === "petrol"
+  );
+
+  const evTrips = trips.filter(
+    (trip) =>
+      String(trip.vehicle_type || "").toLowerCase() === "ev"
+  );
+
+  // Petrol expenditure
+  const petrolExpense = petrolTrips.reduce(
+    (total, trip) => total + Number(trip.total_cost || 0),
+    0
+  );
+
+  // EV expenditure
+  const evExpense = evTrips.reduce(
+    (total, trip) => total + Number(trip.total_cost || 0),
+    0
+  );
+
+  // Total distance
+  const totalDistance = trips.reduce(
+    (total, trip) => total + Number(trip.distance_km || 0),
+    0
+  );
+
+  // Total expenditure
+  const totalExpense = trips.reduce(
+    (total, trip) => total + Number(trip.total_cost || 0),
+    0
+  );
+
+  // Weighted average cost per kilometre
+  const averageCostPerKm =
+    totalDistance > 0 ? totalExpense / totalDistance : 0;
+
+  // Vehicle usage percentages
+  const petrolPercentage =
+    trips.length > 0
+      ? (petrolTrips.length / trips.length) * 100
+      : 0;
+
+  const evPercentage =
+    trips.length > 0
+      ? (evTrips.length / trips.length) * 100
+      : 0;
+
+  // Loading state
   if (loading) {
     return (
       <div className="history-loading">
@@ -90,6 +275,7 @@ function TripHistory() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="history-error">
@@ -102,15 +288,31 @@ function TripHistory() {
   return (
     <div className="trip-history-container">
 
+      {/* History Header */}
       <div className="history-header">
         <div>
           <h2>Trip History</h2>
           <p>View and manage your previously saved trips.</p>
         </div>
 
-        <button onClick={fetchTrips} className="refresh-btn">
-          Refresh
-        </button>
+        <div className="history-header-actions">
+
+          <button
+            onClick={fetchTrips}
+            className="refresh-btn"
+          >
+            Refresh
+          </button>
+
+          <button
+            onClick={exportTripsToCSV}
+            className="export-btn"
+            disabled={trips.length === 0}
+          >
+            Export CSV
+          </button>
+
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -122,35 +324,214 @@ function TripHistory() {
         </div>
 
         <div className="summary-card">
-          <h3>
-            ₹{trips.reduce(
-              (total, trip) =>
-                total + Number(trip.total_cost || 0),
-              0
-            ).toFixed(2)}
-          </h3>
+          <h3>₹{totalExpense.toFixed(2)}</h3>
           <p>Total Estimated Cost</p>
         </div>
 
         <div className="summary-card">
-          <h3>
-            {trips.reduce(
-              (total, trip) =>
-                total + Number(trip.distance_km || 0),
-              0
-            ).toFixed(2)} km
-          </h3>
+          <h3>{totalDistance.toFixed(2)} km</h3>
           <p>Total Distance</p>
         </div>
 
       </div>
 
-      {/* Trip List */}
-      {trips.length === 0 ? (
+      {/* Dashboard Analytics */}
+      <div className="analytics-section">
+
+        <div className="analytics-header">
+          <h2>FuelWise Analytics</h2>
+          <p>Insights from all your saved journeys.</p>
+        </div>
+
+        {/* Analytics Cards */}
+        <div className="analytics-grid">
+
+          <div className="analytics-card">
+            <h3>{trips.length}</h3>
+            <p>Total Saved Trips</p>
+          </div>
+
+          <div className="analytics-card">
+            <h3>{totalDistance.toFixed(2)} km</h3>
+            <p>Total Distance</p>
+          </div>
+
+          <div className="analytics-card">
+            <h3>₹{petrolExpense.toFixed(2)}</h3>
+            <p>Petrol Expenditure</p>
+          </div>
+
+          <div className="analytics-card">
+            <h3>₹{evExpense.toFixed(2)}</h3>
+            <p>EV Expenditure</p>
+          </div>
+
+          <div className="analytics-card">
+            <h3>₹{averageCostPerKm.toFixed(2)}</h3>
+            <p>Average Cost / KM</p>
+          </div>
+
+        </div>
+
+        {/* Vehicle Usage Comparison */}
+        <div className="vehicle-analytics">
+
+          <h3>Vehicle Usage Statistics</h3>
+
+          {/* Petrol Usage */}
+          <div className="usage-item">
+
+            <div className="usage-label">
+              <span>Petrol Vehicles</span>
+
+              <strong>
+                {petrolTrips.length} trips (
+                {petrolPercentage.toFixed(1)}%)
+              </strong>
+            </div>
+
+            <div className="usage-track">
+              <div
+                className="usage-fill petrol-fill"
+                style={{ width: `${petrolPercentage}%` }}
+              ></div>
+            </div>
+
+          </div>
+
+          {/* EV Usage */}
+          <div className="usage-item">
+
+            <div className="usage-label">
+              <span>Electric Vehicles</span>
+
+              <strong>
+                {evTrips.length} trips (
+                {evPercentage.toFixed(1)}%)
+              </strong>
+            </div>
+
+            <div className="usage-track">
+              <div
+                className="usage-fill ev-fill"
+                style={{ width: `${evPercentage}%` }}
+              ></div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Monthly Analytics */}
+      <MonthlyAnalytics trips={trips} />
+
+      {/* Search and Filter Section */}
+      <div className="history-filter-section">
+
+        <div className="filter-header">
+          <div>
+            <h3>Search & Filter Trips</h3>
+            <p>Find your saved journeys easily.</p>
+          </div>
+
+          <button
+            className="clear-filter-btn"
+            onClick={clearFilters}
+          >
+            Clear Filters
+          </button>
+        </div>
+
+        <div className="filter-controls">
+
+          {/* Search Input */}
+          <div className="filter-group search-group">
+            <label>Search Trips</label>
+
+            <input
+              type="text"
+              placeholder="Search by ID, vehicle or distance..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Vehicle Filter */}
+          <div className="filter-group">
+            <label>Vehicle Type</label>
+
+            <select
+              value={vehicleFilter}
+              onChange={(e) => setVehicleFilter(e.target.value)}
+            >
+              <option value="all">All Vehicles</option>
+              <option value="petrol">Petrol</option>
+              <option value="ev">Electric Vehicle</option>
+            </select>
+          </div>
+
+          {/* Start Date */}
+          <div className="filter-group">
+            <label>From Date</label>
+
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          {/* End Date */}
+          <div className="filter-group">
+            <label>To Date</label>
+
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+
+        </div>
+
+        {/* Results Count */}
+        <div className="filter-results">
+          <p>
+            Showing <strong>{filteredTrips.length}</strong> of{" "}
+            <strong>{trips.length}</strong> trips
+          </p>
+        </div>
+
+      </div>
+
+      {/* Filtered Trip List */}
+      {filteredTrips.length === 0 ? (
 
         <div className="empty-history">
-          <h3>No Trips Found</h3>
-          <p>Your saved trips will appear here.</p>
+          <h3>
+            {trips.length === 0
+              ? "No Trips Found"
+              : "No Matching Trips"}
+          </h3>
+
+          <p>
+            {trips.length === 0
+              ? "Your saved trips will appear here."
+              : "Try changing your search or filter options."}
+          </p>
+
+          {trips.length > 0 && (
+            <button
+              className="clear-filter-btn"
+              onClick={clearFilters}
+            >
+              Clear Filters
+            </button>
+          )}
         </div>
 
       ) : (
@@ -173,7 +554,7 @@ function TripHistory() {
 
             <tbody>
 
-              {trips.map((trip) => (
+              {filteredTrips.map((trip) => (
 
                 <tr key={trip.id}>
 
@@ -183,7 +564,7 @@ function TripHistory() {
                     <span
                       className={`vehicle-badge ${trip.vehicle_type}`}
                     >
-                      {trip.vehicle_type.toUpperCase()}
+                      {String(trip.vehicle_type || "").toUpperCase()}
                     </span>
                   </td>
 
@@ -199,33 +580,38 @@ function TripHistory() {
 
                   <td>
                     {trip.created_at
-                      ? new Date(trip.created_at).toLocaleDateString()
+                      ? new Date(
+                          trip.created_at
+                        ).toLocaleDateString()
                       : "N/A"}
                   </td>
 
                   <td>
                     <div className="history-actions">
 
+                      {/* View Details */}
                       <button
                         className="view-details-btn"
                         onClick={() => {
-                          setEditingTrip(null);
+                          setEditingTripId(null);
                           setSelectedTripId(trip.id);
                         }}
                       >
                         View Details
                       </button>
 
+                      {/* Edit */}
                       <button
                         className="edit-btn"
                         onClick={() => {
                           setSelectedTripId(null);
-                          setEditingTrip(trip);
+                          setEditingTripId(trip.id);
                         }}
                       >
                         Edit
                       </button>
 
+                      {/* Delete */}
                       <button
                         className="delete-btn"
                         onClick={() => deleteTrip(trip.id)}
@@ -248,12 +634,12 @@ function TripHistory() {
 
       )}
 
-      {/* Edit Trip Form */}
-      {editingTrip && (
+      {/* Edit Trip Component */}
+      {editingTripId !== null && (
         <EditTrip
-          trip={editingTrip}
+          tripId={editingTripId}
+          onClose={() => setEditingTripId(null)}
           onUpdated={handleTripUpdated}
-          onCancel={() => setEditingTrip(null)}
         />
       )}
 

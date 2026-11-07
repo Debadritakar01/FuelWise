@@ -1,0 +1,128 @@
+
+.edit-trip-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 25, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.edit-trip-modal {
+  background: #ffffff;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 18px;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
+}
+
+.edit-trip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.edit-trip-header p {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.edit-trip-header h2 {
+  margin: 8px 0;
+  color: #172033;
+}
+
+.edit-trip-header span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.edit-trip-header button {
+  border: none;
+  background: #f1f5f9;
+  padding: 9px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.edit-trip-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-trip-modal label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.edit-trip-modal input,
+.edit-trip-modal select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  font-size: 14px;
+  outline: none;
+}
+
+.edit-trip-modal input:focus,
+.edit-trip-modal select:focus {
+  border-color: #2563eb;
+}
+
+.edit-trip-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.edit-trip-actions button {
+  padding: 11px 18px;
+  border: none;
+  border-radius: 9px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-trip-actions button:first-child {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.edit-trip-actions button:last-child {
+  background: #2563eb;
+  color: white;
+}
+
+.edit-trip-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.edit-error {
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.edit-success {
+  color: #16a34a;
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .edit-trip-modal {
+    padding: 20px;
+  }
+}
