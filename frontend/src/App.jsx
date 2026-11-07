@@ -1,13 +1,6 @@
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
+
 import { useState } from "react";
+import CostComparisonChart from "./components/CostComparisonChart";
 import "./App.css";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -25,6 +18,14 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Format currency
+  const money = (amount) =>
+    `₹${Number(amount).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+  // Calculate individual trip
   const calculateTrip = async () => {
     setLoading(true);
     setError("");
@@ -48,14 +49,20 @@ function App() {
     try {
       const response = await fetch(`${API_URL}/api/trip/estimate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(body),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail?.[0]?.msg || data.detail || "Calculation failed");
+        throw new Error(
+          data.detail?.[0]?.msg ||
+          data.detail ||
+          "Calculation failed"
+        );
       }
 
       setResult(data);
@@ -66,6 +73,7 @@ function App() {
     }
   };
 
+  // Compare Petrol and Electric vehicles
   const compareVehicles = async () => {
     setLoading(true);
     setError("");
@@ -83,14 +91,20 @@ function App() {
     try {
       const response = await fetch(`${API_URL}/api/compare`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(body),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail?.[0]?.msg || data.detail || "Comparison failed");
+        throw new Error(
+          data.detail?.[0]?.msg ||
+          data.detail ||
+          "Comparison failed"
+        );
       }
 
       setComparison(data);
@@ -101,45 +115,61 @@ function App() {
     }
   };
 
-  const money = (amount) =>
-    `₹${Number(amount).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-
   return (
     <div className="app">
+
+      {/* Header */}
       <header className="topbar">
         <div className="brand">
           <span className="brand-icon">⚡</span>
           <span>FuelWise</span>
         </div>
-        <span className="topbar-label">Smart Fuel Intelligence</span>
+
+        <span className="topbar-label">
+          Smart Fuel Intelligence
+        </span>
       </header>
 
       <main className="container">
+
+        {/* Hero Section */}
         <section className="hero">
           <p className="eyebrow">SMART JOURNEY PLANNER</p>
-          <h1>Plan your trip. <span>Save your fuel.</span></h1>
+
+          <h1>
+            Plan your trip. <span>Save your fuel.</span>
+          </h1>
+
           <p className="hero-text">
             Estimate your journey cost and compare petrol and electric vehicles.
           </p>
         </section>
 
+        {/* Trip Calculator */}
         <section className="planner">
+
           <div className="section-heading">
             <div>
               <p className="eyebrow">TRIP CALCULATOR</p>
               <h2>Enter your trip details</h2>
             </div>
-            <span className="step-label">01 / CALCULATE</span>
+
+            <span className="step-label">
+              01 / CALCULATE
+            </span>
           </div>
 
+          {/* Vehicle Selection */}
           <div className="field">
             <label>Choose vehicle type</label>
+
             <div className="vehicle-options">
               <button
-                className={vehicleType === "petrol" ? "vehicle-option active" : "vehicle-option"}
+                className={
+                  vehicleType === "petrol"
+                    ? "vehicle-option active"
+                    : "vehicle-option"
+                }
                 onClick={() => {
                   setVehicleType("petrol");
                   setResult(null);
@@ -149,8 +179,13 @@ function App() {
               >
                 ⛽ Petrol
               </button>
+
               <button
-                className={vehicleType === "ev" ? "vehicle-option active" : "vehicle-option"}
+                className={
+                  vehicleType === "ev"
+                    ? "vehicle-option active"
+                    : "vehicle-option"
+                }
                 onClick={() => {
                   setVehicleType("ev");
                   setResult(null);
@@ -163,9 +198,14 @@ function App() {
             </div>
           </div>
 
+          {/* Input Fields */}
           <div className="form-grid">
+
             <div className="field">
-              <label htmlFor="distance">Trip distance (km)</label>
+              <label htmlFor="distance">
+                Trip distance (km)
+              </label>
+
               <input
                 id="distance"
                 type="number"
@@ -179,7 +219,10 @@ function App() {
             {vehicleType === "petrol" ? (
               <>
                 <div className="field">
-                  <label htmlFor="mileage">Vehicle mileage (km/L)</label>
+                  <label htmlFor="mileage">
+                    Vehicle mileage (km/L)
+                  </label>
+
                   <input
                     id="mileage"
                     type="number"
@@ -189,8 +232,12 @@ function App() {
                     placeholder="Example: 45"
                   />
                 </div>
+
                 <div className="field">
-                  <label htmlFor="petrolPrice">Petrol price (₹/L)</label>
+                  <label htmlFor="petrolPrice">
+                    Petrol price (₹/L)
+                  </label>
+
                   <input
                     id="petrolPrice"
                     type="number"
@@ -204,7 +251,10 @@ function App() {
             ) : (
               <>
                 <div className="field">
-                  <label htmlFor="efficiency">EV efficiency (km/kWh)</label>
+                  <label htmlFor="efficiency">
+                    EV efficiency (km/kWh)
+                  </label>
+
                   <input
                     id="efficiency"
                     type="number"
@@ -214,8 +264,12 @@ function App() {
                     placeholder="Example: 40"
                   />
                 </div>
+
                 <div className="field">
-                  <label htmlFor="electricityPrice">Electricity price (₹/kWh)</label>
+                  <label htmlFor="electricityPrice">
+                    Electricity price (₹/kWh)
+                  </label>
+
                   <input
                     id="electricityPrice"
                     type="number"
@@ -227,86 +281,147 @@ function App() {
                 </div>
               </>
             )}
+
           </div>
 
-          <button className="primary-button" onClick={calculateTrip} disabled={loading}>
+          {/* Calculate Button */}
+          <button
+            className="primary-button"
+            onClick={calculateTrip}
+            disabled={loading}
+          >
             {loading ? "Calculating..." : "Calculate Trip →"}
           </button>
 
           <p className="hint">
-            Enter positive values. The estimate uses the mileage, efficiency and prices you provide.
+            Enter positive values. The estimate uses the mileage,
+            efficiency and prices you provide.
           </p>
 
-          {error && <div className="error-message">{error}</div>}
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
+
         </section>
 
+        {/* Individual Trip Result */}
         {result && (
           <section className="results">
+
             <p className="eyebrow">YOUR ESTIMATE</p>
+
             <h2>{result.vehicle_type} trip summary</h2>
+
             <div className="result-grid">
+
               <div className="result-card">
                 <span>Trip distance</span>
                 <strong>{result.distance_km} km</strong>
               </div>
+
               <div className="result-card">
-                <span>{vehicleType === "petrol" ? "Fuel required" : "Energy required"}</span>
+                <span>
+                  {vehicleType === "petrol"
+                    ? "Fuel required"
+                    : "Energy required"}
+                </span>
+
                 <strong>
                   {vehicleType === "petrol"
                     ? `${result.fuel_used_litres} L`
                     : `${result.energy_used_kwh} kWh`}
                 </strong>
               </div>
+
               <div className="result-card highlight">
                 <span>Estimated trip cost</span>
                 <strong>{money(result.total_cost)}</strong>
               </div>
+
               <div className="result-card">
                 <span>Cost per kilometre</span>
                 <strong>{money(result.cost_per_km)}/km</strong>
               </div>
+
             </div>
           </section>
         )}
 
+        {/* Vehicle Comparison */}
         <section className="compare-section">
+
           <div>
             <p className="eyebrow">MAKE A SMARTER CHOICE</p>
+
             <h2>Petrol or Electric?</h2>
-            <p>Compare the running cost of both vehicle types for the same distance.</p>
+
+            <p>
+              Compare the running cost of both vehicle types
+              for the same distance.
+            </p>
           </div>
-          <button className="secondary-button" onClick={compareVehicles} disabled={loading}>
+
+          <button
+            className="secondary-button"
+            onClick={compareVehicles}
+            disabled={loading}
+          >
             {loading ? "Comparing..." : "Compare Both Vehicles"}
           </button>
+
         </section>
 
+        {/* Comparison Results */}
         {comparison && (
           <section className="results">
-            <p className="eyebrow">COMPARISON RESULT · {comparison.distance_km} KM</p>
+
+            <p className="eyebrow">
+              COMPARISON RESULT · {comparison.distance_km} KM
+            </p>
+
             <h2>{comparison.cheaper_vehicle}</h2>
+
             <div className="result-grid">
+
               <div className="result-card">
                 <span>Petrol trip cost</span>
-                <strong>{money(comparison.petrol.total_cost)}</strong>
+                <strong>
+                  {money(comparison.petrol.total_cost)}
+                </strong>
               </div>
+
               <div className="result-card">
                 <span>EV trip cost</span>
-                <strong>{money(comparison.electric.total_cost)}</strong>
+                <strong>
+                  {money(comparison.electric.total_cost)}
+                </strong>
               </div>
+
               <div className="result-card highlight">
                 <span>Cost difference</span>
                 <strong>{money(comparison.savings)}</strong>
               </div>
+
             </div>
+
             <p className="hint">
-              This comparison uses your entered values and covers running energy cost only.
+              This comparison uses your entered values and covers
+              running energy cost only.
             </p>
+
+            {/* NEW: Cost Comparison Chart */}
+            <CostComparisonChart comparison={comparison} />
+
           </section>
         )}
 
+        {/* Footer */}
         <footer>
           FuelWise · Smart Fuel Intelligence · Project prototype
         </footer>
+
       </main>
     </div>
   );
