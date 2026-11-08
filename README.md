@@ -1,185 +1,207 @@
 # ⚡ FuelWise – Smart Fuel Intelligence
 
-FuelWise is a web-based trip planning and vehicle expense analytics application. It helps users estimate petrol and electric vehicle (EV) running costs, compare energy expenses, save trip records, and review travel history through an analytics dashboard.
+### Plan Your Trip. Save Your Fuel.
 
-## 🚀 Features
+FuelWise is a smart journey planning and fuel management web application that helps users estimate travel expenses, compare petrol and electric vehicles (EVs), manage previous journeys, and analyze travel expenditure through interactive dashboards.
 
-### 1. Trip Planning and Cost Estimation
-- Calculate petrol consumption and trip cost.
-- Calculate EV energy consumption and charging cost.
-- Display estimated energy usage and cost per kilometre.
-- Compare petrol and EV running costs.
-- Calculate potential savings between petrol and EV vehicles.
+The application combines trip cost calculations, vehicle comparisons, trip history management, monthly analytics, and downloadable CSV reports in one platform.
 
-### 2. Trip History Management
-- Save calculated trips to the database.
-- View all saved trips.
+---
+
+## 🚀 Project Overview
+
+FuelWise helps users understand:
+
+- How much will a journey cost?
+- How much fuel or electricity will be consumed?
+- Which is more economical: a petrol vehicle or an electric vehicle?
+- How much have I spent on previous journeys?
+- How are my monthly travel expenses changing?
+
+---
+
+## ✨ Features
+
+### 1. Smart Trip Calculator
+- Calculate estimated trip costs.
+- Support petrol and electric vehicles.
+- Calculate fuel or electricity consumption.
+- Calculate cost per kilometre.
+- Display estimated journey expenses.
+
+### 2. Petrol vs EV Comparison
+- Compare petrol and electric vehicle running costs.
+- Compare estimated energy consumption.
+- Display cost differences.
+- Visualize comparisons using charts.
+
+### 3. Interactive Dashboard
+- Display trip calculation results.
+- Present vehicle cost comparisons.
+- Provide visual insights through charts.
+
+### 4. SQLite Database Integration
+- Store saved trip records permanently.
+- Retrieve previously saved journeys.
+- Maintain trip history using SQLite.
+- Perform database operations using SQLAlchemy.
+
+### 5. Trip History Management
+Users can:
+- View all previously saved trips.
 - View individual trip details.
-- Edit existing trip records.
-- Delete saved trips.
+- Edit saved trip information.
+- Delete unwanted trips.
+- Refresh trip records.
 
-### 3. Monthly Analytics
+### 6. Individual Trip Details
+Display complete information about a selected journey:
+- Trip ID
+- Vehicle type
+- Distance travelled
+- Mileage or EV efficiency
+- Fuel or energy consumed
+- Total estimated cost
+- Cost per kilometre
+- Trip creation date
 
-FuelWise provides a monthly analytics dashboard with:
+### 7. Search and Filter Trips
+- Search trips by ID.
+- Search by vehicle type.
+- Search by distance.
+- Filter petrol and electric vehicle trips.
+- Filter trips using start and end dates.
+- Clear all filters.
+- Display matching trip counts.
 
-- Total trips.
-- Total travel distance.
-- Total expenses.
-- Petrol expenses.
-- EV expenses.
-- Monthly petrol and EV distance.
-- Monthly trip activity.
+### 8. FuelWise Dashboard Analytics
+The analytics dashboard provides:
+- Total saved trips.
+- Total distance travelled.
+- Total estimated expenditure.
+- Petrol expenditure.
+- EV expenditure.
+- Average cost per kilometre.
+- Petrol vs EV usage statistics.
+- Vehicle usage percentage indicators.
 
-**Analytics Visualizations:**
-- Monthly Expense Comparison – Petrol vs EV.
-- Monthly Distance Comparison – Petrol vs EV.
-- Monthly Trip Activity – Number of trips per month.
+### 9. Monthly Trip and Expense Analytics
 
-**Monthly Summary Table:**
+Monthly analytics help users understand their travel patterns and expenditure.
 
-Displays:
-- Month and year.
-- Total trips.
-- Total distance.
-- Petrol distance.
-- EV distance.
-- Petrol expenses.
-- EV expenses.
-- Total expenses.
+Features include:
+- Monthly petrol expenditure.
+- Monthly EV expenditure.
+- Total monthly expenses.
+- Number of trips completed each month.
+- Monthly petrol vs EV expense comparison using Recharts.
+- Monthly trip activity line chart.
+- Monthly expense summary table.
+- Chronological monthly records.
 
-### 4. Year and Month Filters (In Progress)
+### 10. Automatic Analytics Refresh
 
-The next enhancement is to introduce date filters.
+FuelWise uses a custom browser event called `tripsUpdated` to synchronize trip management with the Monthly Analytics dashboard.
 
-Planned functionality:
-- Filter analytics by a selected year.
-- Filter analytics by a selected month.
-- View all monthly records without filters.
-- Dynamically update summary cards.
-- Refresh charts and tables based on selected filters.
+Analytics automatically fetches updated information after:
+- Saving a new trip.
+- Editing an existing trip.
+- Deleting a trip.
+
+This reduces the need for manually refreshing the browser to see updated monthly statistics.
+
+### 11. Export Trip History as CSV
+
+Users can download their saved journey records in CSV format.
+
+The exported report includes:
+- Trip ID
+- Vehicle type
+- Distance
+- Mileage / efficiency
+- Fuel / energy consumed
+- Total cost (INR)
+- Cost per kilometre
+- Creation date
+
+Additional functionality:
+- Automatically generates a dated filename.
+- Supports Microsoft Excel and Google Sheets.
+- Handles commas and quotation marks in CSV values.
+- Exports saved trips regardless of active search filters.
+
+---
 
 ## 🛠️ Technology Stack
 
-| Category | Technology |
+| Technology | Purpose |
 |---|---|
-| Frontend | React.js |
-| Build Tool | Vite |
-| Programming Language | JavaScript |
-| Styling | HTML, CSS |
-| Charts | Recharts |
-| Backend | Python, FastAPI |
-| Database | SQLite |
-| ORM | SQLAlchemy |
-| API Testing | Swagger UI |
-| Version Control | Git and GitHub |
+| HTML5 | Application structure |
+| CSS3 | Styling and responsive design |
+| JavaScript | Application logic |
+| React.js | Frontend development |
+| Vite | Frontend development server |
+| Python | Backend programming |
+| FastAPI | REST API development |
+| SQLite | Database |
+| SQLAlchemy | Database ORM |
+| Recharts | Data visualization |
+| Git & GitHub | Version control |
+
+---
 
 ## 📂 Project Structure
 
 ```text
 FuelWise/
 │
-├── backend/
-│   ├── main.py
-│   ├── database.py
-│   ├── models/
-│   ├── services/
-│   └── requirements.txt
-│
 ├── frontend/
 │   ├── public/
 │   ├── src/
 │   │   ├── components/
+│   │   │   ├── TripHistory.jsx
+│   │   │   ├── TripHistory.css
+│   │   │   ├── TripDetails.jsx
+│   │   │   ├── EditTrip.jsx
 │   │   │   ├── MonthlyAnalytics.jsx
 │   │   │   ├── MonthlyAnalytics.css
-│   │   │   ├── TripHistory.jsx
-│   │   │   ├── TripDetails.jsx
-│   │   │   └── EditTrip.jsx
+│   │   │   ├── CostComparisonChart.jsx
+│   │   │   └── Navbar.jsx
 │   │   │
 │   │   ├── App.jsx
+│   │   ├── App.css
+│   │   ├── index.css
 │   │   └── main.jsx
 │   │
 │   ├── package.json
 │   └── vite.config.js
 │
+├── backend/
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   └── requirements.txt
+│
 └── README.md
 ```
 
-## 🔗 API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/` | Check backend status |
-| POST | `/api/trip/estimate` | Calculate trip estimate |
-| POST | `/api/compare` | Compare petrol and EV costs |
-| POST | `/api/trips/save` | Save a trip |
-| GET | `/api/trips` | Retrieve saved trips |
-| GET | `/api/trips/{trip_id}` | Retrieve individual trip |
-| PUT | `/api/trips/{trip_id}` | Update an existing trip |
-| DELETE | `/api/trips/{trip_id}` | Delete a saved trip |
-| GET | `/api/analytics/monthly` | Retrieve monthly analytics |
-
-*Verify the exact route names against your current backend `main.py` before publishing.*
-
-### Monthly Analytics API
-
-Base endpoint:
-
-```http
-GET /api/analytics/monthly
-```
-
-Planned filter requests:
-
-```http
-GET /api/analytics/monthly?year=2026
-```
-
-```http
-GET /api/analytics/monthly?year=2026&month=11
-```
-
-Supported parameters:
-
-- `year`: Filter analytics by year.
-- `month`: Filter analytics by month (1–12).
-
-### Example API Response
-
-```json
-{
-  "filters": {
-    "year": 2026,
-    "month": 11
-  },
-  "total_trips": 5,
-  "total_distance": 250.0,
-  "total_expenses": 700.0,
-  "petrol_expense": 500.0,
-  "ev_expense": 200.0,
-  "monthly_data": [
-    {
-      "month": "November",
-      "year": 2026,
-      "total_trips": 5,
-      "total_distance": 250.0,
-      "petrol_distance": 150.0,
-      "ev_distance": 100.0,
-      "total_expenses": 700.0,
-      "petrol_expense": 500.0,
-      "ev_expense": 200.0
-    }
-  ]
-}
-```
-
-*Example values only.*
+---
 
 ## ⚙️ Installation and Setup
+
+### Prerequisites
+
+Install the following:
+- Python 3.x
+- Node.js and npm
+- Visual Studio Code
+- Git
 
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/Debadritakar01/FuelWise.git
+
 cd FuelWise
 ```
 
@@ -187,12 +209,17 @@ cd FuelWise
 
 ```bash
 cd backend
+```
+
+Create a virtual environment:
+
+```bash
 python -m venv venv
 ```
 
-Activate the virtual environment on Windows:
+Activate it on Windows:
 
-```powershell
+```bash
 venv\Scripts\activate
 ```
 
@@ -202,7 +229,7 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Start the FastAPI server:
+Start the backend:
 
 ```bash
 python -m uvicorn main:app --reload
@@ -214,7 +241,7 @@ Backend URL:
 http://127.0.0.1:8000
 ```
 
-Swagger documentation:
+FastAPI Swagger documentation:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -226,77 +253,149 @@ Open another terminal:
 
 ```bash
 cd frontend
+```
+
+Install dependencies:
+
+```bash
 npm install
+```
+
+Install Recharts if it is not already installed:
+
+```bash
+npm install recharts
+```
+
+Start the frontend:
+
+```bash
 npm run dev
 ```
 
-Open the local URL provided by Vite, usually:
+Frontend URL:
 
 ```text
 http://localhost:5173
 ```
 
-## 📊 Development Progress
+---
 
-| Feature | Status |
-|---|---|
-| React + Vite setup | Completed |
-| FastAPI backend setup | Completed |
-| Petrol trip calculation | Implemented |
-| EV trip calculation | Implemented |
-| Petrol vs EV comparison | Implemented |
-| Save trip functionality | Implemented |
-| Trip history | Implemented |
-| Individual trip details | Implemented |
-| Edit trip | Implemented |
-| Delete trip | Implemented |
-| Monthly Analytics API | Implemented |
-| Monthly expense chart | Implemented |
-| Monthly trip activity chart | Implemented |
-| Petrol vs EV distance calculation | Added |
-| Monthly distance comparison chart | Added |
-| Monthly summary table | Implemented |
-| Year and month filters | In Progress |
-| Deployment | Pending |
+## 📊 Dashboard Analytics
 
-## 🧪 Testing Checklist
+FuelWise provides analytics based on saved trip records.
 
-- [ ] Test petrol trip calculation.
-- [ ] Test EV trip calculation.
-- [ ] Test petrol vs EV comparison.
-- [ ] Save and retrieve trips.
-- [ ] View individual trip details.
-- [ ] Edit saved trips.
-- [ ] Delete saved trips.
-- [ ] Test monthly analytics API.
-- [ ] Verify petrol and EV distance calculations.
-- [ ] Verify monthly expense chart.
-- [ ] Verify monthly distance chart.
-- [ ] Verify monthly trip activity chart.
-- [ ] Verify monthly summary table.
-- [ ] Test year filter.
-- [ ] Test month filter.
-- [ ] Verify frontend updates after applying filters.
+### Overall Analytics
+- Total trips.
+- Total distance.
+- Petrol expenditure.
+- EV expenditure.
+- Average cost per kilometre.
 
-## 🔮 Future Enhancements
+### Monthly Analytics
+- Petrol vs EV expense comparison.
+- Monthly journey count.
+- Total monthly expenditure.
+- Monthly expense summary.
+- Monthly trip activity visualization.
 
-- Year and month analytics filters.
-- Date-range filtering.
-- Export analytics reports as PDF.
-- Multiple vehicle profiles.
-- Route-based distance estimation.
-- Nearby petrol pumps and EV charging stations.
-- User authentication.
-- Deployment of frontend and backend.
+### Automatic Data Synchronization
 
-## 👩‍💻 Project Information
+The `tripsUpdated` event connects trip management with monthly analytics.
 
-**Project Name:** FuelWise – Smart Fuel Intelligence
-
-**Category:** Full Stack Web Development
-
-**Purpose:** Smart journey planning, fuel cost estimation, petrol vs EV comparison, and travel expense analytics.
+Whenever a trip is successfully saved, edited, or deleted, the Monthly Analytics component listens for the event and fetches fresh analytics data.
 
 ---
 
-**FuelWise – Plan your trip. Save your fuel.** ⚡
+## 📥 CSV Report Generation
+
+FuelWise includes a CSV export feature for maintaining travel and expense records.
+
+Example filename:
+
+```text
+FuelWise_Trip_History_YYYY-MM-DD.csv
+```
+
+The exported file can be opened using Microsoft Excel or Google Sheets.
+
+---
+
+## 🔌 Important Backend APIs
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/` | Backend health check |
+| POST | `/api/trip/estimate` | Calculate trip expenses |
+| POST | `/api/compare` | Compare petrol and EV costs |
+| POST | `/api/trips/save` | Save a trip |
+| GET | `/api/trips` | Retrieve saved trips |
+| GET | `/api/trips/{trip_id}` | Retrieve individual trip |
+| PUT | `/api/trips/{trip_id}` | Update saved trip |
+| DELETE | `/api/trips/{trip_id}` | Delete saved trip |
+| GET | `/api/analytics/monthly` | Retrieve monthly analytics |
+
+Refer to the FastAPI Swagger documentation for the latest API definitions.
+
+---
+
+## 🧪 Testing Checklist
+
+- [ ] Calculate petrol trip expenses.
+- [ ] Calculate EV trip expenses.
+- [ ] Compare petrol and EV costs.
+- [ ] Save a trip to SQLite.
+- [ ] View saved trip history.
+- [ ] View individual trip details.
+- [ ] Edit a saved trip.
+- [ ] Delete a saved trip.
+- [ ] Search trips by ID, vehicle and distance.
+- [ ] Filter trips by vehicle type.
+- [ ] Filter trips by date.
+- [ ] Verify overall dashboard analytics.
+- [ ] Verify petrol and EV expenditure separately.
+- [ ] Verify monthly expense charts.
+- [ ] Verify monthly trip activity.
+- [ ] Verify analytics refresh after saving a trip.
+- [ ] Verify analytics refresh after editing a trip.
+- [ ] Verify analytics refresh after deleting a trip.
+- [ ] Export trip history as CSV.
+- [ ] Open the CSV report in Excel.
+
+---
+
+## 🔮 Future Enhancements
+
+- PDF trip report generation.
+- Advanced fuel consumption analytics.
+- Date-based filters for monthly analytics.
+- Route planning using Google Maps API.
+- Nearby petrol pump and EV charging station recommendations.
+- Real-time fuel price integration.
+- AI-powered fuel recommendations.
+- Fuel expense prediction.
+- User authentication and profile management.
+- Multiple vehicle management.
+- Cloud deployment.
+
+---
+
+## 🎯 Project Objective
+
+FuelWise aims to transform traditional trip cost calculation into a smarter journey management system by combining vehicle expense estimation, petrol and EV comparison, historical trip management, and data-driven travel analytics.
+
+### FuelWise – Predict. Compare. Analyze. Save.
+
+---
+
+## 👩‍💻 Developer
+
+**Debadrita Kar**
+
+B.Tech – Computer Science and Engineering
+
+GitHub: https://github.com/Debadritakar01
+
+---
+
+⭐ If you find this project useful, consider giving it a star on GitHub.
