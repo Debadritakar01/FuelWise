@@ -70,7 +70,10 @@ function TripHistory() {
       setTrips((previousTrips) =>
         previousTrips.filter((trip) => trip.id !== tripId)
       );
-
+      // Notify Monthly Analytics
+      window.dispatchEvent(
+        new Event("tripsUpdated")
+      );
       if (selectedTripId === tripId) {
         setSelectedTripId(null);
       }
@@ -86,9 +89,15 @@ function TripHistory() {
 
   // Handle successful trip update
   const handleTripUpdated = async () => {
-    setEditingTripId(null);
-    await fetchTrips();
-  };
+  setEditingTrip(null);
+
+  await fetchTrips();
+
+  // Notify Monthly Analytics
+  window.dispatchEvent(
+    new Event("tripsUpdated")
+  );
+};
 
   // Convert date into local YYYY-MM-DD format
   const getLocalDate = (dateValue) => {

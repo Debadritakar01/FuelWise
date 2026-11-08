@@ -1,4 +1,4 @@
-
+import MonthlyAnalytics from "./components/MonthlyAnalytics";
 import TripHistory from "./components/TripHistory";
 import { useState } from "react";
 import CostComparisonChart from "./components/CostComparisonChart";
@@ -55,6 +55,12 @@ function App() {
         },
         body: JSON.stringify(body),
       });
+      if (response.ok) {
+        // Notify Monthly Analytics about the new trip
+        window.dispatchEvent(
+          new Event("tripsUpdated")
+        );
+      }
 
       const data = await response.json();
 
@@ -418,8 +424,11 @@ function App() {
           </section>
         )}
 
-        {/* NEW: Trip History Section */}
+        {/* Trip History Section */}
         <TripHistory />
+
+        {/* Monthly Analytics Dashboard */}
+        <MonthlyAnalytics />
 
         {/* Footer */}
         <footer>
