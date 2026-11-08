@@ -1,4 +1,5 @@
-
+from sqlalchemy import func, extract, case
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -474,4 +475,210 @@ def delete_trip(
     return {
         "message": "Trip deleted successfully",
         "trip_id": trip_id
+    }
+
+
+# ==========================================
+# API 8: MONTHLY TRIP ANALYTICS WITH FILTERS
+# ==========================================
+
+@app.get("/api/analytics/monthly")
+def get_monthly_analytics(
+    year: int | None = None,
+    month: int | None = None,
+    db: Session = Depends(get_db)
+):
+
+    # Validate month
+    if month is not None and not 1 <= month <= 12:
+        raise HTTPException(
+            status_code=400,
+            detail="Month must be between 1 and 12"
+        )
+
+    # Base query
+    filtered_query = db.query(Trip).filter(
+        Trip.created_at.isnot(None)
+    )
+
+    # Apply year filter
+    if year is not None:
+        filtered_query = filtered_query.filter(
+            extract("year", Trip.created_at) == year
+        )
+
+    # Apply month filter
+    if month is not None:
+        filtered_query = filtered_query.filter(
+            extract("month", Trip.created_at) == month
+        )
+
+    # Overall statistics for selected filters
+    overall = filtered_query.with_entities(
+
+        func.count(Trip.id).label("total_trips"),
+
+        func.coalesce(
+            func.sum(Trip.distance_km), 0
+        ).label("total_distance"),
+
+        func.coalesce(
+            func.sum(Trip.total_cost), 0
+        ).label("total_expenses"),
+
+        func.coalesce(
+            func.sum(
+                case(
+                    (Trip.vehicle_type == "petrol", Trip.total_cost),
+                    else_=0
+                )
+            ), 0
+        ).label("petrol_expense"),
+
+        func.coalesce(
+            func.sum(
+                case(
+                    (Trip.vehicle_type == "ev", Trip.total_cost),
+                    else_=0
+                )
+            ), 0
+        ).label("ev_expense")
+
+    ).first()
+
+    # Group selected trips by year and month
+    month_key = func.strftime(
+        "%Y-%m", Trip.created_at
+    )
+
+    monthly_records = (
+        filtered_query.with_entities(
+
+            month_key.label("month_key"),
+
+            func.count(Trip.id).label("total_trips"),
+
+            func.coalesce(
+                func.sum(Trip.distance_km), 0
+            ).label("total_distance"),
+
+            # Petrol distance
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Trip.vehicle_type == "petrol", Trip.distance_km),
+                        else_=0
+                    )
+                ), 0
+            ).label("petrol_distance"),
+
+            # EV distance
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Trip.vehicle_type == "ev", Trip.distance_km),
+                        else_=0
+                    )
+                ), 0
+            ).label("ev_distance"),
+
+            # Total expenses
+            func.coalesce(
+                func.sum(Trip.total_cost), 0
+            ).label("total_expenses"),
+
+            # Petrol expenses
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Trip.vehicle_type == "petrol", Trip.total_cost),
+                        else_=0
+                    )
+                ), 0
+            ).label("petrol_expense"),
+
+            # EV expenses
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Trip.vehicle_type == "ev", Trip.total_cost),
+                        else_=0
+                    )
+                ), 0
+            ).label("ev_expense")
+
+        )
+        .group_by(month_key)
+        .order_by(month_key)
+        .all()
+    )
+
+    # Prepare monthly response
+    monthly_data = []
+
+    for record in monthly_records:
+
+        date_object = datetime.strptime(
+            record.month_key, "%Y-%m"
+        )
+
+        monthly_data.append({
+
+            "month": date_object.strftime("%B"),
+            "year": date_object.year,
+
+            "total_trips": record.total_trips,
+
+            "total_distance": round(
+                float(record.total_distance), 2
+            ),
+
+            "petrol_distance": round(
+                float(record.petrol_distance), 2
+            ),
+
+            "ev_distance": round(
+                float(record.ev_distance), 2
+            ),
+
+            "total_expenses": round(
+                float(record.total_expenses), 2
+            ),
+
+            "petrol_expense": round(
+                float(record.petrol_expense), 2
+            ),
+
+            "ev_expense": round(
+                float(record.ev_expense), 2
+            )
+        })
+
+    # Return analytics
+    return {
+
+        "filters": {
+            "year": year,
+            "month": month
+        },
+
+        "total_trips": overall.total_trips,
+
+        "total_distance": round(
+            float(overall.total_distance), 2
+        ),
+
+        "total_expenses": round(
+            float(overall.total_expenses), 2
+        ),
+
+        "petrol_expense": round(
+            float(overall.petrol_expense), 2
+        ),
+
+        "ev_expense": round(
+            float(overall.ev_expense), 2
+        ),
+
+        "monthly_data": monthly_data
     }

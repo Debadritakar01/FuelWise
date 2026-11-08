@@ -124,3 +124,28 @@
     padding: 17px;
   }
 }
+
+.monthly-empty button {
+  margin-top: 15px;
+  padding: 10px 22px;
+  background: #1677d2;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.monthly-empty button:hover {
+  background: #105da8;
+}
+
+.monthly-summary-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.monthly-summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
