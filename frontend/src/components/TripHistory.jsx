@@ -15,11 +15,12 @@ function TripHistory() {
   const [selectedTripId, setSelectedTripId] = useState(null);
   const [editingTripId, setEditingTripId] = useState(null);
 
-  // Search and filter states
+  // Search, filter and sorting states
   const [searchTerm, setSearchTerm] = useState("");
   const [vehicleFilter, setVehicleFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
   // Fetch saved trips
   const fetchTrips = async () => {
@@ -43,6 +44,7 @@ function TripHistory() {
     }
   };
 
+  // Initial fetch
   useEffect(() => {
     fetchTrips();
   }, []);
@@ -70,10 +72,10 @@ function TripHistory() {
       setTrips((previousTrips) =>
         previousTrips.filter((trip) => trip.id !== tripId)
       );
+
       // Notify Monthly Analytics
-      window.dispatchEvent(
-        new Event("tripsUpdated")
-      );
+      window.dispatchEvent(new Event("tripsUpdated"));
+
       if (selectedTripId === tripId) {
         setSelectedTripId(null);
       }
@@ -89,15 +91,13 @@ function TripHistory() {
 
   // Handle successful trip update
   const handleTripUpdated = async () => {
-  setEditingTrip(null);
+    setEditingTripId(null);
 
-  await fetchTrips();
+    await fetchTrips();
 
-  // Notify Monthly Analytics
-  window.dispatchEvent(
-    new Event("tripsUpdated")
-  );
-};
+    // Notify Monthly Analytics
+    window.dispatchEvent(new Event("tripsUpdated"));
+  };
 
   // Convert date into local YYYY-MM-DD format
   const getLocalDate = (dateValue) => {
@@ -119,9 +119,9 @@ function TripHistory() {
     const search = searchTerm.toLowerCase().trim();
 
     const matchesSearch =
-      String(trip.id).toLowerCase().includes(search) ||
+      String(trip.id ?? "").toLowerCase().includes(search) ||
       String(trip.vehicle_type || "").toLowerCase().includes(search) ||
-      String(trip.distance_km || "").toLowerCase().includes(search);
+      String(trip.distance_km ?? "").toLowerCase().includes(search);
 
     const matchesVehicle =
       vehicleFilter === "all" ||
@@ -143,12 +143,44 @@ function TripHistory() {
     );
   });
 
-  // Clear all filters
+  // Sort filtered trips
+  const sortedTrips = [...filteredTrips].sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime() || 0;
+    const dateB = new Date(b.created_at).getTime() || 0;
+
+    switch (sortBy) {
+      case "oldest":
+        return dateA - dateB;
+
+      case "highest_distance":
+        return Number(b.distance_km || 0) -
+          Number(a.distance_km || 0);
+
+      case "lowest_distance":
+        return Number(a.distance_km || 0) -
+          Number(b.distance_km || 0);
+
+      case "highest_cost":
+        return Number(b.total_cost || 0) -
+          Number(a.total_cost || 0);
+
+      case "lowest_cost":
+        return Number(a.total_cost || 0) -
+          Number(b.total_cost || 0);
+
+      case "newest":
+      default:
+        return dateB - dateA;
+    }
+  });
+
+  // Clear all filters and sorting
   const clearFilters = () => {
     setSearchTerm("");
     setVehicleFilter("all");
     setStartDate("");
     setEndDate("");
+    setSortBy("newest");
   };
 
   // ==========================================
@@ -505,20 +537,37 @@ function TripHistory() {
             />
           </div>
 
+          {/* Sorting */}
+          <div className="filter-group">
+            <label>Sort By</label>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="highest_distance">Highest Distance</option>
+              <option value="lowest_distance">Lowest Distance</option>
+              <option value="highest_cost">Highest Cost</option>
+              <option value="lowest_cost">Lowest Cost</option>
+            </select>
+          </div>
+
         </div>
 
         {/* Results Count */}
         <div className="filter-results">
           <p>
-            Showing <strong>{filteredTrips.length}</strong> of{" "}
+            Showing <strong>{sortedTrips.length}</strong> of{" "}
             <strong>{trips.length}</strong> trips
           </p>
         </div>
 
       </div>
 
-      {/* Filtered Trip List */}
-      {filteredTrips.length === 0 ? (
+      {/* Filtered and Sorted Trip List */}
+      {sortedTrips.length === 0 ? (
 
         <div className="empty-history">
           <h3>
@@ -563,7 +612,7 @@ function TripHistory() {
 
             <tbody>
 
-              {filteredTrips.map((trip) => (
+              {sortedTrips.map((trip) => (
 
                 <tr key={trip.id}>
 
@@ -589,9 +638,7 @@ function TripHistory() {
 
                   <td>
                     {trip.created_at
-                      ? new Date(
-                          trip.created_at
-                        ).toLocaleDateString()
+                      ? new Date(trip.created_at).toLocaleDateString()
                       : "N/A"}
                   </td>
 
