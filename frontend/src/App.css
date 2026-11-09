@@ -767,3 +767,46 @@ svg {
     width: 100%;
   }
 }
+/* =====================================
+   FUELWISE - PDF DOWNLOAD BUTTON
+===================================== */
+
+.download-pdf-btn {
+  background: #246b3e;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.download-pdf-btn:hover {
+  background: #18552f;
+  transform: translateY(-1px);
+}
+
+.download-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.trip-details-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 650px) {
+  .trip-details-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .trip-details-actions button {
+    width: 100%;
+  }
+}

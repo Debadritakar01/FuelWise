@@ -16,6 +16,7 @@ function TripDetails({ tripId, onClose }) {
       try {
         setLoading(true);
         setError("");
+        setTrip(null);
 
         const response = await fetch(
           `${API_URL}/api/trips/${tripId}`
@@ -25,7 +26,9 @@ function TripDetails({ tripId, onClose }) {
 
         if (!response.ok) {
           throw new Error(
-            data.message || data.detail || "Failed to fetch trip details"
+            data.message ||
+            data.detail ||
+            "Failed to fetch trip details"
           );
         }
 
@@ -44,6 +47,8 @@ function TripDetails({ tripId, onClose }) {
 
   // Download PDF report
   const downloadPDF = async () => {
+    if (!trip?.id) return;
+
     try {
       setDownloading(true);
 
@@ -56,18 +61,24 @@ function TripDetails({ tripId, onClose }) {
 
         try {
           const data = await response.json();
-          errorMessage = data.message || data.detail || errorMessage;
+
+          errorMessage =
+            data.message ||
+            data.detail ||
+            errorMessage;
         } catch {
-          // Keep default error message if response is not JSON
+          // Keep default error message
         }
 
         throw new Error(errorMessage);
       }
 
       const blob = await response.blob();
+
       const url = window.URL.createObjectURL(blob);
 
       const link = document.createElement("a");
+
       link.href = url;
       link.download = `FuelWise_Trip_${trip.id}.pdf`;
 
@@ -76,6 +87,7 @@ function TripDetails({ tripId, onClose }) {
       link.remove();
 
       window.URL.revokeObjectURL(url);
+
     } catch (error) {
       console.error("PDF download error:", error);
       alert(error.message);
@@ -107,7 +119,10 @@ function TripDetails({ tripId, onClose }) {
       <div className="trip-details-overlay">
         <div className="trip-details-modal">
           <h2>Unable to load trip</h2>
-          <p className="trip-details-error">{error}</p>
+
+          <p className="trip-details-error">
+            {error}
+          </p>
 
           <button onClick={onClose}>
             Close
@@ -119,7 +134,8 @@ function TripDetails({ tripId, onClose }) {
 
   if (!trip) return null;
 
-  const isEV = trip.vehicle_type?.toLowerCase() === "ev";
+  const isEV =
+    trip.vehicle_type?.toLowerCase() === "ev";
 
   return (
     <div
@@ -130,11 +146,16 @@ function TripDetails({ tripId, onClose }) {
         className="trip-details-modal"
         onClick={(e) => e.stopPropagation()}
       >
+
         {/* Header */}
         <div className="trip-details-header">
           <div>
-            <p className="eyebrow">SAVED JOURNEY</p>
+            <p className="eyebrow">
+              SAVED JOURNEY
+            </p>
+
             <h2>Trip Details</h2>
+
             <span>Trip #{trip.id}</span>
           </div>
 
@@ -149,16 +170,24 @@ function TripDetails({ tripId, onClose }) {
         {/* Trip Details */}
         <div className="trip-details-content">
 
+          {/* Vehicle Type */}
           <div className="trip-detail-card">
             <span>Vehicle Type</span>
+
             <strong>
-              {isEV ? "⚡ Electric Vehicle" : "⛽ Petrol"}
+              {isEV
+                ? "⚡ Electric Vehicle"
+                : "⛽ Petrol"}
             </strong>
           </div>
 
+          {/* Distance */}
           <div className="trip-detail-card">
             <span>Trip Distance</span>
-            <strong>{trip.distance_km} km</strong>
+
+            <strong>
+              {trip.distance_km} km
+            </strong>
           </div>
 
           {/* Petrol Details */}
@@ -166,6 +195,7 @@ function TripDetails({ tripId, onClose }) {
             <>
               <div className="trip-detail-card">
                 <span>Vehicle Mileage</span>
+
                 <strong>
                   {trip.mileage ?? "N/A"} km/L
                 </strong>
@@ -173,6 +203,7 @@ function TripDetails({ tripId, onClose }) {
 
               <div className="trip-detail-card">
                 <span>Petrol Price</span>
+
                 <strong>
                   {money(trip.petrol_price)}/L
                 </strong>
@@ -180,6 +211,7 @@ function TripDetails({ tripId, onClose }) {
 
               <div className="trip-detail-card">
                 <span>Fuel Consumed</span>
+
                 <strong>
                   {trip.fuel_used_litres ?? "N/A"} L
                 </strong>
@@ -192,6 +224,7 @@ function TripDetails({ tripId, onClose }) {
             <>
               <div className="trip-detail-card">
                 <span>EV Efficiency</span>
+
                 <strong>
                   {trip.efficiency ?? "N/A"} km/kWh
                 </strong>
@@ -199,6 +232,7 @@ function TripDetails({ tripId, onClose }) {
 
               <div className="trip-detail-card">
                 <span>Electricity Price</span>
+
                 <strong>
                   {money(trip.electricity_price)}/kWh
                 </strong>
@@ -206,6 +240,7 @@ function TripDetails({ tripId, onClose }) {
 
               <div className="trip-detail-card">
                 <span>Energy Consumed</span>
+
                 <strong>
                   {trip.energy_used_kwh ?? "N/A"} kWh
                 </strong>
@@ -213,39 +248,55 @@ function TripDetails({ tripId, onClose }) {
             </>
           )}
 
-          {/* Cost Details */}
+          {/* Total Cost */}
           <div className="trip-detail-card highlight">
             <span>Total Trip Cost</span>
-            <strong>{money(trip.total_cost)}</strong>
+
+            <strong>
+              {money(trip.total_cost)}
+            </strong>
           </div>
 
+          {/* Cost Per KM */}
           <div className="trip-detail-card">
             <span>Cost Per KM</span>
-            <strong>{money(trip.cost_per_km)}/km</strong>
+
+            <strong>
+              {money(trip.cost_per_km)}/km
+            </strong>
           </div>
 
         </div>
 
         {/* Footer */}
         <div className="trip-details-footer">
+
           <span>
             {trip.created_at
-              ? new Date(trip.created_at).toLocaleString()
+              ? new Date(
+                  trip.created_at
+                ).toLocaleString()
               : "Date unavailable"}
           </span>
 
           <div className="trip-details-actions">
+
+            {/* PDF Download Button */}
             <button
               className="download-pdf-btn"
               onClick={downloadPDF}
               disabled={downloading}
             >
-              {downloading ? "Downloading..." : "Download PDF"}
+              {downloading
+                ? "Generating PDF..."
+                : "⬇ Download PDF"}
             </button>
 
+            {/* Close Button */}
             <button onClick={onClose}>
               Close Details
             </button>
+
           </div>
         </div>
 
