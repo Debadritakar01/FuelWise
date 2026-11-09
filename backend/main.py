@@ -1,13 +1,32 @@
+
 from sqlalchemy import func, extract, case
 from datetime import datetime
+from io import BytesIO
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle
+)
 
 from services.calculations import calculate_petrol, calculate_ev
 from database import engine, get_db
 from models import Base, Trip
+
 
 
 # Create database tables automatically
@@ -682,3 +701,226 @@ def get_monthly_analytics(
 
         "monthly_data": monthly_data
     }
+
+# ==========================================
+# API 9: GENERATE PDF REPORT FOR A TRIP
+# ==========================================
+
+@app.get("/api/trips/{trip_id}/pdf")
+def download_trip_pdf(
+    trip_id: int,
+    db: Session = Depends(get_db)
+):
+
+    # Find the saved trip
+    trip = (
+        db.query(Trip)
+        .filter(Trip.id == trip_id)
+        .first()
+    )
+
+    if trip is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Trip not found"
+        )
+
+    # Create an in-memory PDF
+    buffer = BytesIO()
+
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=20 * mm,
+        leftMargin=20 * mm,
+        topMargin=20 * mm,
+        bottomMargin=20 * mm
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        "FuelWiseTitle",
+        parent=styles["Title"],
+        fontSize=22,
+        textColor=colors.HexColor("#176B55"),
+        alignment=TA_CENTER,
+        spaceAfter=8
+    )
+
+    subtitle_style = ParagraphStyle(
+        "FuelWiseSubtitle",
+        parent=styles["Normal"],
+        fontSize=10,
+        alignment=TA_CENTER,
+        textColor=colors.grey,
+        spaceAfter=20
+    )
+
+    story = []
+
+    # Report heading
+    story.append(
+        Paragraph("FuelWise", title_style)
+    )
+
+    story.append(
+        Paragraph(
+            "Smart Fuel Intelligence - Trip Report",
+            subtitle_style
+        )
+    )
+
+    story.append(Spacer(1, 10))
+
+    # Trip date
+    trip_date = (
+        trip.created_at.strftime("%d %B %Y, %I:%M %p")
+        if trip.created_at else "Not available"
+    )
+
+    vehicle = trip.vehicle_type.upper()
+
+    # Common trip information
+    report_data = [
+        ["Trip Information", "Details"],
+        ["Trip ID", str(trip.id)],
+        ["Vehicle Type", vehicle],
+        ["Distance Travelled", f"{trip.distance_km:.2f} km"],
+        ["Trip Date", trip_date],
+    ]
+
+    # Petrol-specific information
+    if trip.vehicle_type == "petrol":
+
+        report_data.extend([
+            ["Mileage", f"{trip.mileage} km/L"],
+            ["Petrol Price", f"Rs. {trip.petrol_price}/L"],
+            [
+                "Fuel Consumed",
+                f"{trip.fuel_used_litres:.2f} litres"
+                if trip.fuel_used_litres is not None
+                else "Not available"
+            ],
+        ])
+
+    # EV-specific information
+    elif trip.vehicle_type == "ev":
+
+        report_data.extend([
+            ["EV Efficiency", f"{trip.efficiency} km/kWh"],
+            [
+                "Electricity Price",
+                f"Rs. {trip.electricity_price}/kWh"
+            ],
+            [
+                "Energy Consumed",
+                f"{trip.energy_used_kwh:.2f} kWh"
+                if trip.energy_used_kwh is not None
+                else "Not available"
+            ],
+        ])
+
+    # Cost information
+    report_data.extend([
+        [
+            "Total Trip Cost",
+            f"Rs. {trip.total_cost:.2f}"
+        ],
+        [
+            "Cost Per Kilometre",
+            f"Rs. {trip.cost_per_km:.2f}/km"
+        ]
+    ])
+
+    # Create details table
+    details_table = Table(
+        report_data,
+        colWidths=[65 * mm, 95 * mm]
+    )
+
+    details_table.setStyle(
+        TableStyle([
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, 0),
+                colors.HexColor("#176B55")
+            ),
+            (
+                "TEXTCOLOR",
+                (0, 0),
+                (-1, 0),
+                colors.white
+            ),
+            (
+                "FONTNAME",
+                (0, 0),
+                (-1, 0),
+                "Helvetica-Bold"
+            ),
+            (
+                "FONTNAME",
+                (0, 1),
+                (0, -1),
+                "Helvetica-Bold"
+            ),
+            (
+                "BACKGROUND",
+                (0, 1),
+                (-1, -1),
+                colors.HexColor("#F4F8F6")
+            ),
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                0.5,
+                colors.HexColor("#D5E2DC")
+            ),
+            (
+                "PADDING",
+                (0, 0),
+                (-1, -1),
+                10
+            ),
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "MIDDLE"
+            ),
+        ])
+    )
+
+    story.append(details_table)
+
+    story.append(Spacer(1, 25))
+
+    story.append(
+        Paragraph(
+            "Thank you for using FuelWise!",
+            ParagraphStyle(
+                "Footer",
+                parent=styles["Normal"],
+                alignment=TA_CENTER,
+                textColor=colors.HexColor("#176B55"),
+                fontSize=12
+            )
+        )
+    )
+
+    # Generate the PDF
+    document.build(story)
+
+    buffer.seek(0)
+
+    # Return downloadable PDF
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition":
+                f'attachment; filename="FuelWise_Trip_{trip.id}.pdf"'
+        }
+    )

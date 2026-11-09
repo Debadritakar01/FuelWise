@@ -190,16 +190,82 @@ function MonthlyAnalytics() {
         totals.petrolExpense + item.petrolExpense,
 
       evExpense:
-        totals.evExpense + item.evExpense
+        totals.evExpense + item.evExpense,
+
+      petrolDistance:
+        totals.petrolDistance + item.petrolDistance,
+
+      evDistance:
+        totals.evDistance + item.evDistance
     }),
     {
       totalTrips: 0,
       totalDistance: 0,
       totalExpenses: 0,
       petrolExpense: 0,
-      evExpense: 0
+      evExpense: 0,
+      petrolDistance: 0,
+      evDistance: 0
     }
   );
+
+  // =====================================
+  // FUELWISE SAVINGS INSIGHTS
+  // =====================================
+
+  // Petrol running cost per kilometre
+  const petrolCostPerKm =
+    filteredTotals.petrolDistance > 0
+      ? filteredTotals.petrolExpense /
+        filteredTotals.petrolDistance
+      : 0;
+
+  // EV running cost per kilometre
+  const evCostPerKm =
+    filteredTotals.evDistance > 0
+      ? filteredTotals.evExpense /
+        filteredTotals.evDistance
+      : 0;
+
+  // Both vehicle types must have recorded data
+  const hasComparableData =
+    filteredTotals.petrolDistance > 0 &&
+    filteredTotals.evDistance > 0;
+
+  // Compare both vehicles over the same distance
+  const comparisonDistance =
+    filteredTotals.totalDistance;
+
+  const estimatedPetrolCost =
+    petrolCostPerKm * comparisonDistance;
+
+  const estimatedEVCost =
+    evCostPerKm * comparisonDistance;
+
+  const estimatedSavings =
+    estimatedPetrolCost - estimatedEVCost;
+
+  // Calculate potential savings percentage
+  const savingsPercentage =
+    estimatedPetrolCost > 0
+      ? (estimatedSavings / estimatedPetrolCost) * 100
+      : 0;
+
+  // Smart recommendation
+  let recommendation = "";
+
+  if (hasComparableData) {
+    if (estimatedSavings > 0) {
+      recommendation =
+        "Based on your recorded running costs, EV travel could be more economical.";
+    } else if (estimatedSavings < 0) {
+      recommendation =
+        "Based on your recorded running costs, petrol travel is currently more economical.";
+    } else {
+      recommendation =
+        "Both vehicle types have similar running costs based on your records.";
+    }
+  }
 
   return (
     <div className="monthly-analytics-section">
@@ -268,6 +334,7 @@ function MonthlyAnalytics() {
         <button
           onClick={() => {
             setSelectedMonth("all");
+
             setSelectedYear(
               String(currentDate.getFullYear())
             );
@@ -316,7 +383,112 @@ function MonthlyAnalytics() {
 
       </div>
 
-      {/* Filtered Monthly Data */}
+      {/* ================================= */}
+      {/* FUELWISE SAVINGS INSIGHTS */}
+      {/* ================================= */}
+
+      <div className="savings-insights-section">
+
+        <div className="monthly-chart-heading">
+          <h3>⚡ FuelWise Savings Insights</h3>
+
+          <p>
+            Compare petrol and EV running costs
+            using your recorded travel data.
+          </p>
+        </div>
+
+        {hasComparableData ? (
+          <>
+
+            <div className="savings-insights-grid">
+
+              <div className="savings-insight-card">
+                <h4>Petrol Cost / KM</h4>
+
+                <h2>
+                  ₹{petrolCostPerKm.toFixed(2)}
+                </h2>
+              </div>
+
+              <div className="savings-insight-card">
+                <h4>EV Cost / KM</h4>
+
+                <h2>
+                  ₹{evCostPerKm.toFixed(2)}
+                </h2>
+              </div>
+
+              <div className="savings-insight-card">
+                <h4>Estimated Petrol Cost</h4>
+
+                <h2>
+                  ₹{estimatedPetrolCost.toFixed(2)}
+                </h2>
+              </div>
+
+              <div className="savings-insight-card">
+                <h4>Estimated EV Cost</h4>
+
+                <h2>
+                  ₹{estimatedEVCost.toFixed(2)}
+                </h2>
+              </div>
+
+            </div>
+
+            {/* Savings Highlight */}
+            <div className="savings-highlight-card">
+
+              <h3>
+                {estimatedSavings >= 0
+                  ? "Potential EV Savings"
+                  : "Petrol is Currently Cheaper"}
+              </h3>
+
+              <h2>
+                ₹{Math.abs(estimatedSavings).toFixed(2)}
+              </h2>
+
+              <p>
+                Estimated comparison over{" "}
+                {comparisonDistance.toFixed(2)} km
+                using your recorded average running costs.
+              </p>
+
+              <p>
+                {estimatedSavings >= 0
+                  ? `${savingsPercentage.toFixed(2)}% potential savings with EV.`
+                  : `${Math.abs(savingsPercentage).toFixed(2)}% higher EV running cost.`}
+              </p>
+
+              <strong>
+                {recommendation}
+              </strong>
+
+            </div>
+
+          </>
+        ) : (
+
+          <div className="monthly-empty">
+            <h3>Not Enough Comparison Data</h3>
+
+            <p>
+              Save at least one petrol trip and one EV trip
+              in the selected period to generate savings
+              insights.
+            </p>
+          </div>
+
+        )}
+
+      </div>
+
+      {/* ================================= */}
+      {/* FILTERED MONTHLY DATA */}
+      {/* ================================= */}
+
       {filteredMonthlyData.length === 0 ? (
 
         <div className="monthly-empty">
@@ -555,6 +727,7 @@ function MonthlyAnalytics() {
               </table>
 
             </div>
+
           </div>
 
         </>

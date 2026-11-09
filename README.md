@@ -2,68 +2,105 @@
 
 **Plan your trip. Save your fuel. Make smarter travel decisions.**
 
-FuelWise is a smart journey planning and fuel cost estimation application that helps users calculate travel expenses for petrol and electric vehicles (EVs). It also compares running costs, saves trip records, and provides monthly analytics to help users understand their travel expenses.
+FuelWise is a full-stack smart journey planning and fuel cost estimation application that helps users calculate and compare travel expenses for petrol and electric vehicles (EVs).
+
+It allows users to manage trip records, analyze monthly expenses, visualize travel patterns, and estimate potential savings by comparing petrol and EV running costs.
 
 ---
 
 ## 🚀 Project Overview
 
-FuelWise is a full-stack web application developed using React, FastAPI, Python and SQLite.
+FuelWise is developed using React.js, Vite, Python, FastAPI and SQLite.
 
-The application allows users to:
-- Calculate petrol vehicle fuel consumption and trip costs.
-- Calculate electric vehicle energy consumption and trip costs.
-- Compare petrol and EV running costs.
-- Identify the more economical vehicle option.
-- Save calculated trips to a SQLite database.
-- View, edit and delete saved trips.
-- Search and filter trip history.
-- Monitor monthly travel expenses through analytics and charts.
+The application provides:
+
+- Petrol and EV trip cost calculations.
+- Petrol vs EV cost comparison.
+- Trip history management.
+- Search and filter functionality.
+- Monthly expense and distance analytics.
+- Year and month-based analytics filters.
+- Petrol and EV savings analysis.
+- Interactive charts and smart recommendations.
+- CSV trip-history export.
+
+---
 
 ## ✨ Features
 
 ### 1. Trip Cost Calculator
+
 - Select Petrol or Electric Vehicle (EV).
 - Enter trip distance.
 - Enter vehicle mileage or EV efficiency.
-- Enter current petrol or electricity prices.
-- Calculate estimated energy consumption.
+- Enter petrol or electricity prices.
+- Calculate fuel or electricity consumption.
 - Calculate total trip cost.
 - Calculate cost per kilometre.
 
 ### 2. Petrol vs EV Comparison
-- Compare petrol and electric vehicle expenses.
-- Calculate the cost difference.
-- Identify the cheaper vehicle.
+
+- Compare petrol and EV running costs.
+- Calculate cost differences.
+- Identify the more economical vehicle.
 - Display comparison results using charts.
 
-### 3. Save Trip History
-- Save calculated trips to the SQLite database.
-- Store vehicle type and trip details.
-- Save petrol or electricity consumption information.
-- Refresh trip history and analytics after successful saving.
+### 3. Trip History Management
 
-### 4. Trip History Management
+- Save calculated trips in SQLite.
 - View previously saved trips.
 - View individual trip details.
 - Edit existing trip records.
 - Delete saved trips.
 - Search trips using available trip information.
-- Filter trips by vehicle type and date range.
+- Filter trips by vehicle type.
+- Filter trips by date range.
+- Export trip history as CSV.
 
-### 5. Monthly Analytics Dashboard
+### 4. Monthly Analytics Dashboard
+
 - Display monthly travel statistics.
 - Track total trips and total distance.
-- Monitor total travel expenses.
-- Compare petrol and EV expenses.
-- Calculate average cost per kilometre.
-- Visualize monthly data using Recharts.
+- Monitor petrol and EV expenses.
+- Compare monthly expenses.
+- Compare petrol and EV travel distances.
+- Visualize monthly trip activity.
+- Display monthly travel summary tables.
 
-### 6. Data Visualization
-- Petrol vs EV cost comparison chart.
-- Monthly expense charts.
-- Travel analytics and statistics.
-- Visual representation of trip history.
+### 5. Year and Month Filters
+
+- Select a particular year.
+- Filter analytics by January to December.
+- View all months of a selected year.
+- Reset filters.
+- Automatically update analytics based on selected filters.
+- Handle periods with no recorded trips.
+
+### 6. FuelWise Savings Insights
+
+An intelligent expense analysis feature that compares petrol and EV running costs using saved trip records.
+
+Features include:
+
+- Petrol cost per kilometre.
+- EV cost per kilometre.
+- Estimated petrol cost over the comparison distance.
+- Estimated EV cost over the comparison distance.
+- Potential EV savings.
+- Savings percentage.
+- Smart recommendations based on recorded travel data.
+
+The savings calculation uses separate petrol and EV travel distances to calculate their respective average running costs.
+
+### 7. Data Visualization
+
+Interactive charts using Recharts:
+
+- Petrol vs EV cost comparison.
+- Monthly expense comparison.
+- Monthly distance comparison.
+- Monthly trip activity.
+- Travel expense analytics.
 
 ---
 
@@ -75,7 +112,7 @@ The application allows users to:
 | Vite | Frontend development server |
 | JavaScript | Application logic |
 | HTML5 | Structure |
-| CSS3 | Styling and responsive design |
+| CSS3 | Styling |
 | Python | Backend programming |
 | FastAPI | REST API development |
 | SQLite | Database |
@@ -95,8 +132,10 @@ FuelWise/
 │   ├── models.py
 │   ├── database.py
 │   ├── schemas.py
+│   ├── services/
+│   │   └── calculations.py
 │   ├── requirements.txt
-│   └── fuelwise.db
+│   └── venv/
 │
 ├── frontend/
 │   ├── public/
@@ -115,10 +154,11 @@ FuelWise/
 │   ├── package.json
 │   └── vite.config.js
 │
+├── .gitignore
 └── README.md
 ```
 
-*Note: Adjust the structure to match the actual files in your repository.*
+*The structure above shows the main project files; additional components and configuration files may exist.*
 
 ---
 
@@ -126,7 +166,7 @@ FuelWise/
 
 ### Prerequisites
 
-Install the following before running the project:
+Install the following:
 
 - Python 3.10+
 - Node.js and npm
@@ -137,15 +177,13 @@ Install the following before running the project:
 
 ```bash
 git clone https://github.com/Debadritakar01/FuelWise.git
-```
 
-```bash
 cd FuelWise
 ```
 
 ### 2. Backend Setup
 
-Navigate to the backend folder:
+Navigate to the backend directory:
 
 ```bash
 cd backend
@@ -179,19 +217,15 @@ uvicorn main:app --reload
 
 Backend URL:
 
-```text
 http://127.0.0.1:8000
-```
 
 FastAPI Swagger Documentation:
 
-```text
 http://127.0.0.1:8000/docs
-```
 
 ### 3. Frontend Setup
 
-Open another terminal:
+Open another terminal and navigate to the frontend directory:
 
 ```bash
 cd frontend
@@ -211,15 +245,13 @@ npm run dev
 
 Frontend URL:
 
-```text
 http://localhost:5173
-```
 
 ---
 
 ## 🔗 API Endpoints
 
-The backend provides REST APIs for trip calculations, comparisons, trip management and analytics.
+The backend provides REST APIs for calculations, trip management and monthly analytics.
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -268,42 +300,43 @@ The backend provides REST APIs for trip calculations, comparisons, trip manageme
 
 FuelWise uses SQLite with SQLAlchemy for database operations.
 
-The database stores trip information, including:
+The database stores:
 
 - Trip ID
 - Vehicle type
 - Distance travelled
 - Mileage or EV efficiency
 - Petrol or electricity price
-- Energy consumption
+- Fuel or electricity consumption
 - Total trip cost
 - Cost per kilometre
 - Trip creation date
 
 ---
 
-## 📈 Future Enhancements
+## 🔮 Future Enhancements
 
-The following improvements can make FuelWise more powerful:
+The following features are planned for upcoming development:
 
-- [ ] Verify and finalize CSV export functionality.
-- [ ] Complete testing of trip search and filters.
-- [ ] Verify analytics updates after editing and deleting trips.
-- [ ] Add improved input validation and error handling.
+- [ ] Step 9: PDF trip report generation.
+- [ ] Add downloadable individual trip reports.
+- [ ] Improve input validation and error handling.
 - [ ] Add user authentication and authorization.
-- [ ] Add user-specific trip history.
-- [ ] Add fuel price updates using an external API.
+- [ ] Implement user-specific trip history.
+- [ ] Integrate real-time fuel price updates.
 - [ ] Add route-based distance calculation using Maps API.
 - [ ] Improve mobile responsiveness.
+- [ ] Perform comprehensive frontend and backend testing.
 - [ ] Deploy the application online.
+- [ ] Final GitHub documentation and project cleanup.
 
 ---
 
 ## 🎯 Project Objective
 
-The main objective of FuelWise is to help users make cost-effective travel decisions by comparing conventional petrol vehicles with electric vehicles.
+The main objective of FuelWise is to help users make cost-effective and informed travel decisions by comparing conventional petrol vehicles with electric vehicles.
 
-It provides a simple platform for estimating travel expenses, managing trip records and understanding monthly travel patterns through data visualization.
+It provides a platform for estimating travel expenses, managing trip records, analyzing monthly travel patterns and understanding the potential financial benefits of electric vehicle usage.
 
 ---
 
