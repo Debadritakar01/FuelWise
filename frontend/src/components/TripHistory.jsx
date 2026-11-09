@@ -22,7 +22,10 @@ function TripHistory() {
   const [endDate, setEndDate] = useState("");
   const [sortBy, setSortBy] = useState("newest");
 
-  // Fetch saved trips
+  // ==========================================
+  // FETCH SAVED TRIPS
+  // ==========================================
+
   const fetchTrips = async () => {
     try {
       setLoading(true);
@@ -35,6 +38,7 @@ function TripHistory() {
       }
 
       const data = await response.json();
+
       setTrips(data);
 
     } catch (err) {
@@ -44,12 +48,73 @@ function TripHistory() {
     }
   };
 
-  // Initial fetch
+  // ==========================================
+  // DOWNLOAD INDIVIDUAL TRIP PDF
+  // ==========================================
+
+  const downloadTripPDF = async (tripId) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/trips/${tripId}/pdf`
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to generate PDF report");
+      }
+
+      const blob = await response.blob();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `FuelWise_Trip_${tripId}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+
+      // Release the temporary URL after download starts
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+
+    } catch (err) {
+      console.error("PDF Download Error:", err);
+      alert(err.message);
+    }
+  };
+
+  // ==========================================
+  // AUTOMATIC TRIP HISTORY REFRESH
+  // ==========================================
+
   useEffect(() => {
     fetchTrips();
+
+    const handleTripsUpdated = () => {
+      fetchTrips();
+    };
+
+    window.addEventListener(
+      "tripsUpdated",
+      handleTripsUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        "tripsUpdated",
+        handleTripsUpdated
+      );
+    };
   }, []);
 
-  // Delete a trip
+  // ==========================================
+  // DELETE A TRIP
+  // ==========================================
+
   const deleteTrip = async (tripId) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this trip?"
@@ -70,11 +135,14 @@ function TripHistory() {
       }
 
       setTrips((previousTrips) =>
-        previousTrips.filter((trip) => trip.id !== tripId)
+        previousTrips.filter(
+          (trip) => trip.id !== tripId
+        )
       );
 
-      // Notify Monthly Analytics
-      window.dispatchEvent(new Event("tripsUpdated"));
+      window.dispatchEvent(
+        new Event("tripsUpdated")
+      );
 
       if (selectedTripId === tripId) {
         setSelectedTripId(null);
@@ -89,51 +157,79 @@ function TripHistory() {
     }
   };
 
-  // Handle successful trip update
+  // ==========================================
+  // HANDLE SUCCESSFUL TRIP UPDATE
+  // ==========================================
+
   const handleTripUpdated = async () => {
     setEditingTripId(null);
 
     await fetchTrips();
 
-    // Notify Monthly Analytics
-    window.dispatchEvent(new Event("tripsUpdated"));
+    window.dispatchEvent(
+      new Event("tripsUpdated")
+    );
   };
 
-  // Convert date into local YYYY-MM-DD format
+  // ==========================================
+  // CONVERT DATE TO LOCAL YYYY-MM-DD
+  // ==========================================
+
   const getLocalDate = (dateValue) => {
     if (!dateValue) return "";
 
     const date = new Date(dateValue);
 
-    if (Number.isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
 
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(
+      date.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+      date.getDate()
+    ).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
   };
 
-  // Search and filter trips
+  // ==========================================
+  // SEARCH AND FILTER TRIPS
+  // ==========================================
+
   const filteredTrips = trips.filter((trip) => {
     const search = searchTerm.toLowerCase().trim();
 
     const matchesSearch =
-      String(trip.id ?? "").toLowerCase().includes(search) ||
-      String(trip.vehicle_type || "").toLowerCase().includes(search) ||
-      String(trip.distance_km ?? "").toLowerCase().includes(search);
+      String(trip.id ?? "")
+        .toLowerCase()
+        .includes(search) ||
+
+      String(trip.vehicle_type || "")
+        .toLowerCase()
+        .includes(search) ||
+
+      String(trip.distance_km ?? "")
+        .toLowerCase()
+        .includes(search);
 
     const matchesVehicle =
       vehicleFilter === "all" ||
-      String(trip.vehicle_type || "").toLowerCase() === vehicleFilter;
+      String(trip.vehicle_type || "").toLowerCase() ===
+        vehicleFilter;
 
     const tripDate = getLocalDate(trip.created_at);
 
     const matchesStartDate =
-      !startDate || (tripDate && tripDate >= startDate);
+      !startDate ||
+      (tripDate && tripDate >= startDate);
 
     const matchesEndDate =
-      !endDate || (tripDate && tripDate <= endDate);
+      !endDate ||
+      (tripDate && tripDate <= endDate);
 
     return (
       matchesSearch &&
@@ -143,7 +239,10 @@ function TripHistory() {
     );
   });
 
-  // Sort filtered trips
+  // ==========================================
+  // SORT FILTERED TRIPS
+  // ==========================================
+
   const sortedTrips = [...filteredTrips].sort((a, b) => {
     const dateA = new Date(a.created_at).getTime() || 0;
     const dateB = new Date(b.created_at).getTime() || 0;
@@ -153,20 +252,28 @@ function TripHistory() {
         return dateA - dateB;
 
       case "highest_distance":
-        return Number(b.distance_km || 0) -
-          Number(a.distance_km || 0);
+        return (
+          Number(b.distance_km || 0) -
+          Number(a.distance_km || 0)
+        );
 
       case "lowest_distance":
-        return Number(a.distance_km || 0) -
-          Number(b.distance_km || 0);
+        return (
+          Number(a.distance_km || 0) -
+          Number(b.distance_km || 0)
+        );
 
       case "highest_cost":
-        return Number(b.total_cost || 0) -
-          Number(a.total_cost || 0);
+        return (
+          Number(b.total_cost || 0) -
+          Number(a.total_cost || 0)
+        );
 
       case "lowest_cost":
-        return Number(a.total_cost || 0) -
-          Number(b.total_cost || 0);
+        return (
+          Number(a.total_cost || 0) -
+          Number(b.total_cost || 0)
+        );
 
       case "newest":
       default:
@@ -174,7 +281,10 @@ function TripHistory() {
     }
   });
 
-  // Clear all filters and sorting
+  // ==========================================
+  // CLEAR FILTERS
+  // ==========================================
+
   const clearFilters = () => {
     setSearchTerm("");
     setVehicleFilter("all");
@@ -182,6 +292,68 @@ function TripHistory() {
     setEndDate("");
     setSortBy("newest");
   };
+
+  // ==========================================
+  // DASHBOARD ANALYTICS
+  // ==========================================
+
+  const petrolTrips = trips.filter(
+    (trip) =>
+      String(trip.vehicle_type || "").toLowerCase() ===
+      "petrol"
+  );
+
+  const evTrips = trips.filter(
+    (trip) =>
+      String(trip.vehicle_type || "").toLowerCase() ===
+      "ev"
+  );
+
+  // Petrol expenditure
+  const petrolExpense = petrolTrips.reduce(
+    (total, trip) =>
+      total + Number(trip.total_cost || 0),
+    0
+  );
+
+  // EV expenditure
+  const evExpense = evTrips.reduce(
+    (total, trip) =>
+      total + Number(trip.total_cost || 0),
+    0
+  );
+
+  // Total distance
+  const totalDistance = trips.reduce(
+    (total, trip) =>
+      total + Number(trip.distance_km || 0),
+    0
+  );
+
+  // Total expenditure
+  const totalExpense = trips.reduce(
+    (total, trip) =>
+      total + Number(trip.total_cost || 0),
+    0
+  );
+
+  // Average cost per kilometre
+  const averageCostPerKm =
+    totalDistance > 0
+      ? totalExpense / totalDistance
+      : 0;
+
+  // Petrol usage percentage
+  const petrolPercentage =
+    trips.length > 0
+      ? (petrolTrips.length / trips.length) * 100
+      : 0;
+
+  // EV usage percentage
+  const evPercentage =
+    trips.length > 0
+      ? (evTrips.length / trips.length) * 100
+      : 0;
 
   // ==========================================
   // EXPORT TRIP HISTORY AS CSV
@@ -204,19 +376,18 @@ function TripHistory() {
       "Created At"
     ];
 
-    // Escape CSV values safely
     const escapeCSV = (value) => {
       const safeValue = String(value ?? "");
+
       return `"${safeValue.replace(/"/g, '""')}"`;
     };
 
-    // Prepare trip records
     const rows = trips.map((trip) => [
       trip.id,
       trip.vehicle_type,
       trip.distance_km,
       trip.mileage ?? trip.efficiency ?? "",
-      trip.fuel_consumed ?? trip.energy_consumed ?? "",
+      trip.fuel_used_litres ?? trip.energy_used_kwh ?? "",
       trip.total_cost,
       trip.cost_per_km,
       trip.created_at
@@ -224,7 +395,6 @@ function TripHistory() {
         : ""
     ]);
 
-    // Generate CSV content
     const csvContent = [
       headers.map(escapeCSV).join(","),
       ...rows.map((row) =>
@@ -232,10 +402,11 @@ function TripHistory() {
       )
     ].join("\n");
 
-    // Create downloadable CSV file
     const blob = new Blob(
       ["\uFEFF" + csvContent],
-      { type: "text/csv;charset=utf-8;" }
+      {
+        type: "text/csv;charset=utf-8;"
+      }
     );
 
     const url = URL.createObjectURL(blob);
@@ -248,66 +419,16 @@ function TripHistory() {
 
     document.body.appendChild(link);
     link.click();
+
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
   };
 
   // ==========================================
-  // DASHBOARD ANALYTICS
+  // LOADING STATE
   // ==========================================
 
-  // Separate petrol and EV trips
-  const petrolTrips = trips.filter(
-    (trip) =>
-      String(trip.vehicle_type || "").toLowerCase() === "petrol"
-  );
-
-  const evTrips = trips.filter(
-    (trip) =>
-      String(trip.vehicle_type || "").toLowerCase() === "ev"
-  );
-
-  // Petrol expenditure
-  const petrolExpense = petrolTrips.reduce(
-    (total, trip) => total + Number(trip.total_cost || 0),
-    0
-  );
-
-  // EV expenditure
-  const evExpense = evTrips.reduce(
-    (total, trip) => total + Number(trip.total_cost || 0),
-    0
-  );
-
-  // Total distance
-  const totalDistance = trips.reduce(
-    (total, trip) => total + Number(trip.distance_km || 0),
-    0
-  );
-
-  // Total expenditure
-  const totalExpense = trips.reduce(
-    (total, trip) => total + Number(trip.total_cost || 0),
-    0
-  );
-
-  // Weighted average cost per kilometre
-  const averageCostPerKm =
-    totalDistance > 0 ? totalExpense / totalDistance : 0;
-
-  // Vehicle usage percentages
-  const petrolPercentage =
-    trips.length > 0
-      ? (petrolTrips.length / trips.length) * 100
-      : 0;
-
-  const evPercentage =
-    trips.length > 0
-      ? (evTrips.length / trips.length) * 100
-      : 0;
-
-  // Loading state
   if (loading) {
     return (
       <div className="history-loading">
@@ -316,24 +437,38 @@ function TripHistory() {
     );
   }
 
-  // Error state
+  // ==========================================
+  // ERROR STATE
+  // ==========================================
+
   if (error) {
     return (
       <div className="history-error">
         <p>{error}</p>
-        <button onClick={fetchTrips}>Retry</button>
+
+        <button onClick={fetchTrips}>
+          Retry
+        </button>
       </div>
     );
   }
 
+  // ==========================================
+  // MAIN JSX
+  // ==========================================
+
   return (
     <div className="trip-history-container">
 
-      {/* History Header */}
+      {/* HISTORY HEADER */}
+
       <div className="history-header">
+
         <div>
           <h2>Trip History</h2>
-          <p>View and manage your previously saved trips.</p>
+          <p>
+            View and manage your previously saved trips.
+          </p>
         </div>
 
         <div className="history-header-actions">
@@ -356,7 +491,8 @@ function TripHistory() {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* SUMMARY CARDS */}
+
       <div className="history-summary">
 
         <div className="summary-card">
@@ -376,15 +512,19 @@ function TripHistory() {
 
       </div>
 
-      {/* Dashboard Analytics */}
+      {/* DASHBOARD ANALYTICS */}
+
       <div className="analytics-section">
 
         <div className="analytics-header">
           <h2>FuelWise Analytics</h2>
-          <p>Insights from all your saved journeys.</p>
+          <p>
+            Insights from all your saved journeys.
+          </p>
         </div>
 
-        {/* Analytics Cards */}
+        {/* ANALYTICS CARDS */}
+
         <div className="analytics-grid">
 
           <div className="analytics-card">
@@ -414,12 +554,14 @@ function TripHistory() {
 
         </div>
 
-        {/* Vehicle Usage Comparison */}
+        {/* VEHICLE USAGE COMPARISON */}
+
         <div className="vehicle-analytics">
 
           <h3>Vehicle Usage Statistics</h3>
 
-          {/* Petrol Usage */}
+          {/* PETROL USAGE */}
+
           <div className="usage-item">
 
             <div className="usage-label">
@@ -434,13 +576,16 @@ function TripHistory() {
             <div className="usage-track">
               <div
                 className="usage-fill petrol-fill"
-                style={{ width: `${petrolPercentage}%` }}
+                style={{
+                  width: `${petrolPercentage}%`
+                }}
               ></div>
             </div>
 
           </div>
 
-          {/* EV Usage */}
+          {/* EV USAGE */}
+
           <div className="usage-item">
 
             <div className="usage-label">
@@ -455,7 +600,9 @@ function TripHistory() {
             <div className="usage-track">
               <div
                 className="usage-fill ev-fill"
-                style={{ width: `${evPercentage}%` }}
+                style={{
+                  width: `${evPercentage}%`
+                }}
               ></div>
             </div>
 
@@ -465,13 +612,16 @@ function TripHistory() {
 
       </div>
 
-      {/* Monthly Analytics */}
+      {/* MONTHLY ANALYTICS - ONLY ONCE */}
+
       <MonthlyAnalytics trips={trips} />
 
-      {/* Search and Filter Section */}
+      {/* SEARCH AND FILTER SECTION */}
+
       <div className="history-filter-section">
 
         <div className="filter-header">
+
           <div>
             <h3>Search & Filter Trips</h3>
             <p>Find your saved journeys easily.</p>
@@ -483,80 +633,115 @@ function TripHistory() {
           >
             Clear Filters
           </button>
+
         </div>
 
         <div className="filter-controls">
 
-          {/* Search Input */}
+          {/* SEARCH INPUT */}
+
           <div className="filter-group search-group">
+
             <label>Search Trips</label>
 
             <input
               type="text"
               placeholder="Search by ID, vehicle or distance..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) =>
+                setSearchTerm(e.target.value)
+              }
             />
+
           </div>
 
-          {/* Vehicle Filter */}
+          {/* VEHICLE FILTER */}
+
           <div className="filter-group">
+
             <label>Vehicle Type</label>
 
             <select
               value={vehicleFilter}
-              onChange={(e) => setVehicleFilter(e.target.value)}
+              onChange={(e) =>
+                setVehicleFilter(e.target.value)
+              }
             >
               <option value="all">All Vehicles</option>
               <option value="petrol">Petrol</option>
               <option value="ev">Electric Vehicle</option>
             </select>
+
           </div>
 
-          {/* Start Date */}
+          {/* START DATE */}
+
           <div className="filter-group">
+
             <label>From Date</label>
 
             <input
               type="date"
               value={startDate}
               max={endDate || undefined}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) =>
+                setStartDate(e.target.value)
+              }
             />
+
           </div>
 
-          {/* End Date */}
+          {/* END DATE */}
+
           <div className="filter-group">
+
             <label>To Date</label>
 
             <input
               type="date"
               value={endDate}
               min={startDate || undefined}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) =>
+                setEndDate(e.target.value)
+              }
             />
+
           </div>
 
-          {/* Sorting */}
+          {/* SORTING */}
+
           <div className="filter-group">
+
             <label>Sort By</label>
 
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) =>
+                setSortBy(e.target.value)
+              }
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
-              <option value="highest_distance">Highest Distance</option>
-              <option value="lowest_distance">Lowest Distance</option>
-              <option value="highest_cost">Highest Cost</option>
-              <option value="lowest_cost">Lowest Cost</option>
+              <option value="highest_distance">
+                Highest Distance
+              </option>
+              <option value="lowest_distance">
+                Lowest Distance
+              </option>
+              <option value="highest_cost">
+                Highest Cost
+              </option>
+              <option value="lowest_cost">
+                Lowest Cost
+              </option>
             </select>
+
           </div>
 
         </div>
 
-        {/* Results Count */}
+        {/* RESULTS COUNT */}
+
         <div className="filter-results">
           <p>
             Showing <strong>{sortedTrips.length}</strong> of{" "}
@@ -566,10 +751,12 @@ function TripHistory() {
 
       </div>
 
-      {/* Filtered and Sorted Trip List */}
+      {/* FILTERED AND SORTED TRIP LIST */}
+
       {sortedTrips.length === 0 ? (
 
         <div className="empty-history">
+
           <h3>
             {trips.length === 0
               ? "No Trips Found"
@@ -590,6 +777,7 @@ function TripHistory() {
               Clear Filters
             </button>
           )}
+
         </div>
 
       ) : (
@@ -622,30 +810,40 @@ function TripHistory() {
                     <span
                       className={`vehicle-badge ${trip.vehicle_type}`}
                     >
-                      {String(trip.vehicle_type || "").toUpperCase()}
+                      {String(
+                        trip.vehicle_type || ""
+                      ).toUpperCase()}
                     </span>
                   </td>
 
                   <td>{trip.distance_km} km</td>
 
                   <td>
-                    ₹{Number(trip.total_cost || 0).toFixed(2)}
+                    ₹{Number(
+                      trip.total_cost || 0
+                    ).toFixed(2)}
                   </td>
 
                   <td>
-                    ₹{Number(trip.cost_per_km || 0).toFixed(2)}
+                    ₹{Number(
+                      trip.cost_per_km || 0
+                    ).toFixed(2)}
                   </td>
 
                   <td>
                     {trip.created_at
-                      ? new Date(trip.created_at).toLocaleDateString()
+                      ? new Date(
+                          trip.created_at
+                        ).toLocaleDateString()
                       : "N/A"}
                   </td>
 
                   <td>
+
                     <div className="history-actions">
 
-                      {/* View Details */}
+                      {/* VIEW DETAILS */}
+
                       <button
                         className="view-details-btn"
                         onClick={() => {
@@ -656,7 +854,8 @@ function TripHistory() {
                         View Details
                       </button>
 
-                      {/* Edit */}
+                      {/* EDIT */}
+
                       <button
                         className="edit-btn"
                         onClick={() => {
@@ -667,15 +866,30 @@ function TripHistory() {
                         Edit
                       </button>
 
-                      {/* Delete */}
+                      {/* DELETE */}
+
                       <button
                         className="delete-btn"
-                        onClick={() => deleteTrip(trip.id)}
+                        onClick={() =>
+                          deleteTrip(trip.id)
+                        }
                       >
                         Delete
                       </button>
 
+                      {/* DOWNLOAD PDF */}
+
+                      <button
+                        className="pdf-download-btn"
+                        onClick={() =>
+                          downloadTripPDF(trip.id)
+                        }
+                      >
+                        Download PDF
+                      </button>
+
                     </div>
+
                   </td>
 
                 </tr>
@@ -690,20 +904,26 @@ function TripHistory() {
 
       )}
 
-      {/* Edit Trip Component */}
+      {/* EDIT TRIP COMPONENT */}
+
       {editingTripId !== null && (
         <EditTrip
           tripId={editingTripId}
-          onClose={() => setEditingTripId(null)}
+          onClose={() =>
+            setEditingTripId(null)
+          }
           onUpdated={handleTripUpdated}
         />
       )}
 
-      {/* Trip Details Modal */}
+      {/* TRIP DETAILS MODAL */}
+
       {selectedTripId !== null && (
         <TripDetails
           tripId={selectedTripId}
-          onClose={() => setSelectedTripId(null)}
+          onClose={() =>
+            setSelectedTripId(null)
+          }
         />
       )}
 

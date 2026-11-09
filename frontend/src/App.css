@@ -415,3 +415,27 @@ label {
   opacity: 1;
   cursor: not-allowed;
 }
+
+/* Improved error message */
+.error-message {
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+  border-left: 4px solid #d9363e;
+  border-radius: 8px;
+  color: #a8071a;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.error-message strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+
+.error-message p {
+  margin: 0;
+}

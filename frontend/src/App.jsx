@@ -1,4 +1,4 @@
-import MonthlyAnalytics from "./components/MonthlyAnalytics";
+
 import TripHistory from "./components/TripHistory";
 import { useState } from "react";
 import CostComparisonChart from "./components/CostComparisonChart";
@@ -8,6 +8,7 @@ const API_URL = "http://127.0.0.1:8000";
 
 function App() {
   const [vehicleType, setVehicleType] = useState("petrol");
+
   const [distance, setDistance] = useState("100");
   const [mileage, setMileage] = useState("45");
   const [petrolPrice, setPetrolPrice] = useState("105");
@@ -16,8 +17,12 @@ function App() {
 
   const [result, setResult] = useState(null);
   const [comparison, setComparison] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  // Independent loading states
+  const [calculating, setCalculating] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [saving, setSaving] = useState(false);
+
   const [error, setError] = useState("");
 
   // Format currency
@@ -27,9 +32,93 @@ function App() {
       maximumFractionDigits: 2,
     })}`;
 
+  // Validate inputs
+  const validateTripInputs = (forComparison = false) => {
+    const errors = [];
+
+    const isValidPositiveNumber = (value) =>
+      String(value).trim() !== "" &&
+      Number.isFinite(Number(value)) &&
+      Number(value) > 0;
+
+    if (!isValidPositiveNumber(distance)) {
+      errors.push(
+        "Trip distance must be a valid number greater than 0."
+      );
+    }
+
+    if (vehicleType === "petrol" || forComparison) {
+      if (!isValidPositiveNumber(mileage)) {
+        errors.push(
+          "Petrol mileage must be a valid number greater than 0."
+        );
+      }
+
+      if (!isValidPositiveNumber(petrolPrice)) {
+        errors.push(
+          "Petrol price must be a valid number greater than 0."
+        );
+      }
+    }
+
+    if (vehicleType === "ev" || forComparison) {
+      if (!isValidPositiveNumber(efficiency)) {
+        errors.push(
+          "EV efficiency must be a valid number greater than 0."
+        );
+      }
+
+      if (!isValidPositiveNumber(electricityPrice)) {
+        errors.push(
+          "Electricity price must be a valid number greater than 0."
+        );
+      }
+    }
+
+    return errors;
+  };
+
+  // Handle API response
+  const handleApiResponse = async (response, fallbackMessage) => {
+    let data;
+
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(
+        response.ok
+          ? "The server returned an invalid response."
+          : fallbackMessage
+      );
+    }
+
+    if (!response.ok) {
+      const detail = data?.detail;
+
+      const errorMessage = Array.isArray(detail)
+        ? detail.map((item) => item.msg).filter(Boolean).join(", ")
+        : typeof detail === "string"
+        ? detail
+        : fallbackMessage;
+
+      throw new Error(errorMessage || fallbackMessage);
+    }
+
+    return data;
+  };
+
   // Calculate individual trip
   const calculateTrip = async () => {
-    setLoading(true);
+    const errors = validateTripInputs();
+
+    if (errors.length > 0) {
+      setError(errors.join("\n"));
+      setResult(null);
+      setComparison(null);
+      return;
+    }
+
+    setCalculating(true);
     setError("");
     setResult(null);
     setComparison(null);
@@ -37,6 +126,7 @@ function App() {
     const body = {
       vehicle_type: vehicleType,
       distance: Number(distance),
+
       ...(vehicleType === "petrol"
         ? {
             mileage: Number(mileage),
@@ -49,29 +139,29 @@ function App() {
     };
 
     try {
-      const response = await fetch(`${API_URL}/api/trip/estimate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+      const response = await fetch(
+        `${API_URL}/api/trip/estimate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.detail?.[0]?.msg ||
-          data.detail ||
-          "Calculation failed"
-        );
-      }
+      const data = await handleApiResponse(
+        response,
+        "Calculation failed. Please try again."
+      );
 
       setResult(data);
     } catch (err) {
-      setError(err.message || "Could not connect to the backend.");
+      setError(
+        err.message || "Could not connect to the backend."
+      );
     } finally {
-      setLoading(false);
+      setCalculating(false);
     }
   };
 
@@ -88,6 +178,7 @@ function App() {
     const tripData = {
       vehicle_type: vehicleType,
       distance: Number(distance),
+
       ...(vehicleType === "petrol"
         ? {
             mileage: Number(mileage),
@@ -100,31 +191,31 @@ function App() {
     };
 
     try {
-      const response = await fetch(`${API_URL}/api/trips/save`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(tripData),
-      });
+      const response = await fetch(
+        `${API_URL}/api/trips/save`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(tripData),
+        }
+      );
 
-      const data = await response.json();
+      await handleApiResponse(
+        response,
+        "Failed to save trip. Please try again."
+      );
 
-      if (!response.ok) {
-        throw new Error(
-          data.detail?.[0]?.msg ||
-          data.detail ||
-          "Failed to save trip"
-        );
-      }
-
-      // Notify Trip History and Monthly Analytics
+      // Refresh Trip History and Monthly Analytics
       // Only after successful database save
       window.dispatchEvent(new Event("tripsUpdated"));
 
       alert("Trip saved successfully!");
     } catch (err) {
-      setError(err.message || "Could not save trip.");
+      setError(
+        err.message || "Could not save trip."
+      );
     } finally {
       setSaving(false);
     }
@@ -132,7 +223,15 @@ function App() {
 
   // Compare Petrol and Electric vehicles
   const compareVehicles = async () => {
-    setLoading(true);
+    const errors = validateTripInputs(true);
+
+    if (errors.length > 0) {
+      setError(errors.join("\n"));
+      setComparison(null);
+      return;
+    }
+
+    setComparing(true);
     setError("");
     setResult(null);
     setComparison(null);
@@ -146,29 +245,29 @@ function App() {
     };
 
     try {
-      const response = await fetch(`${API_URL}/api/compare`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+      const response = await fetch(
+        `${API_URL}/api/compare`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.detail?.[0]?.msg ||
-          data.detail ||
-          "Comparison failed"
-        );
-      }
+      const data = await handleApiResponse(
+        response,
+        "Vehicle comparison failed. Please try again."
+      );
 
       setComparison(data);
     } catch (err) {
-      setError(err.message || "Could not connect to the backend.");
+      setError(
+        err.message || "Could not connect to the backend."
+      );
     } finally {
-      setLoading(false);
+      setComparing(false);
     }
   };
 
@@ -191,14 +290,17 @@ function App() {
 
         {/* Hero Section */}
         <section className="hero">
-          <p className="eyebrow">SMART JOURNEY PLANNER</p>
+          <p className="eyebrow">
+            SMART JOURNEY PLANNER
+          </p>
 
           <h1>
             Plan your trip. <span>Save your fuel.</span>
           </h1>
 
           <p className="hero-text">
-            Estimate your journey cost and compare petrol and electric vehicles.
+            Estimate your journey cost and compare petrol
+            and electric vehicles.
           </p>
         </section>
 
@@ -222,6 +324,7 @@ function App() {
 
             <div className="vehicle-options">
               <button
+                type="button"
                 className={
                   vehicleType === "petrol"
                     ? "vehicle-option active"
@@ -233,12 +336,12 @@ function App() {
                   setComparison(null);
                   setError("");
                 }}
-                type="button"
               >
                 ⛽ Petrol
               </button>
 
               <button
+                type="button"
                 className={
                   vehicleType === "ev"
                     ? "vehicle-option active"
@@ -250,7 +353,6 @@ function App() {
                   setComparison(null);
                   setError("");
                 }}
-                type="button"
               >
                 ⚡ Electric (EV)
               </button>
@@ -269,10 +371,13 @@ function App() {
                 id="distance"
                 type="number"
                 min="0.1"
+                step="any"
                 value={distance}
                 onChange={(e) => {
                   setDistance(e.target.value);
                   setResult(null);
+                  setComparison(null);
+                  setError("");
                 }}
                 placeholder="Enter distance"
               />
@@ -289,10 +394,12 @@ function App() {
                     id="mileage"
                     type="number"
                     min="0.1"
+                    step="any"
                     value={mileage}
                     onChange={(e) => {
                       setMileage(e.target.value);
                       setResult(null);
+                      setError("");
                     }}
                     placeholder="Example: 45"
                   />
@@ -307,10 +414,12 @@ function App() {
                     id="petrolPrice"
                     type="number"
                     min="0.1"
+                    step="any"
                     value={petrolPrice}
                     onChange={(e) => {
                       setPetrolPrice(e.target.value);
                       setResult(null);
+                      setError("");
                     }}
                     placeholder="Example: 105"
                   />
@@ -327,10 +436,12 @@ function App() {
                     id="efficiency"
                     type="number"
                     min="0.1"
+                    step="any"
                     value={efficiency}
                     onChange={(e) => {
                       setEfficiency(e.target.value);
                       setResult(null);
+                      setError("");
                     }}
                     placeholder="Example: 40"
                   />
@@ -345,10 +456,12 @@ function App() {
                     id="electricityPrice"
                     type="number"
                     min="0.1"
+                    step="any"
                     value={electricityPrice}
                     onChange={(e) => {
                       setElectricityPrice(e.target.value);
                       setResult(null);
+                      setError("");
                     }}
                     placeholder="Example: 8"
                   />
@@ -362,19 +475,25 @@ function App() {
           <button
             className="primary-button"
             onClick={calculateTrip}
-            disabled={loading || saving}
+            disabled={calculating || comparing || saving}
           >
-            {loading ? "Calculating..." : "Calculate Trip →"}
+            {calculating
+              ? "Calculating..."
+              : "Calculate Trip →"}
           </button>
 
           <p className="hint">
-            Enter positive values. The estimate uses the mileage,
-            efficiency and prices you provide.
+            Enter positive values. The estimate uses the
+            mileage, efficiency and prices you provide.
           </p>
 
+          {/* Error Message */}
           {error && (
-            <div className="error-message">
-              {error}
+            <div className="error-message" role="alert">
+              <strong>⚠ Something went wrong</strong>
+              <p style={{ whiteSpace: "pre-line" }}>
+                {error}
+              </p>
             </div>
           )}
 
@@ -425,9 +544,11 @@ function App() {
             <button
               className="primary-button"
               onClick={saveTrip}
-              disabled={saving || loading}
+              disabled={saving || calculating || comparing}
             >
-              {saving ? "Saving Trip..." : "Save Trip to History →"}
+              {saving
+                ? "Saving Trip..."
+                : "Save Trip to History →"}
             </button>
 
           </section>
@@ -437,22 +558,26 @@ function App() {
         <section className="compare-section">
 
           <div>
-            <p className="eyebrow">MAKE A SMARTER CHOICE</p>
+            <p className="eyebrow">
+              MAKE A SMARTER CHOICE
+            </p>
 
             <h2>Petrol or Electric?</h2>
 
             <p>
-              Compare the running cost of both vehicle types
-              for the same distance.
+              Compare the running cost of both vehicle
+              types for the same distance.
             </p>
           </div>
 
           <button
             className="secondary-button"
             onClick={compareVehicles}
-            disabled={loading || saving}
+            disabled={calculating || comparing || saving}
           >
-            {loading ? "Comparing..." : "Compare Both Vehicles"}
+            {comparing
+              ? "Comparing..."
+              : "Compare Both Vehicles"}
           </button>
 
         </section>
@@ -485,14 +610,16 @@ function App() {
 
               <div className="result-card highlight">
                 <span>Cost difference</span>
-                <strong>{money(comparison.savings)}</strong>
+                <strong>
+                  {money(comparison.savings)}
+                </strong>
               </div>
 
             </div>
 
             <p className="hint">
-              This comparison uses your entered values and covers
-              running energy cost only.
+              This comparison uses your entered values and
+              covers running energy cost only.
             </p>
 
             {/* Cost Comparison Chart */}
@@ -501,11 +628,8 @@ function App() {
           </section>
         )}
 
-        {/* Trip History Section */}
+        {/* Trip History */}
         <TripHistory />
-
-        {/* Monthly Analytics Dashboard */}
-        <MonthlyAnalytics />
 
         {/* Footer */}
         <footer>

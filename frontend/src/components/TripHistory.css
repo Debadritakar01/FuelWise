@@ -480,3 +480,18 @@
     width: 100%;
   }
 }
+.pdf-download-btn {
+  background-color: #176b55;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.pdf-download-btn:hover {
+  background-color: #10513f;
+}
