@@ -1,16 +1,24 @@
 
+import logging
 from typing import Literal
 from datetime import datetime
 from io import BytesIO
 
 from sqlalchemy import func, extract, case
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import StreamingResponse, JSONResponse
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    model_validator,
+    field_validator
+)
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
@@ -31,6 +39,18 @@ from models import Base, Trip
 
 
 # ==========================================
+# LOGGING CONFIGURATION
+# ==========================================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger("FuelWise")
+
+
+# ==========================================
 # CREATE DATABASE TABLES
 # ==========================================
 
@@ -46,6 +66,95 @@ app = FastAPI(
     description="Smart Fuel Intelligence System",
     version="1.0"
 )
+
+
+# ==========================================
+# GLOBAL ERROR HANDLING
+# ==========================================
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+
+    logger.warning(
+        "HTTP error %s on %s: %s",
+        exc.status_code,
+        request.url.path,
+        exc.detail
+    )
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error": "HTTP Error",
+            "message": exc.detail
+        }
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+
+    errors = []
+
+    for error in exc.errors():
+        errors.append({
+            "field": ".".join(
+                str(item) for item in error["loc"]
+            ),
+            "message": error["msg"]
+        })
+
+    logger.warning(
+        "Validation error on %s",
+        request.url.path
+    )
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "error": "Validation Error",
+            "message": "Please check your input values",
+            "details": errors
+        }
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_exception_handler(request, exc):
+
+    logger.exception(
+        "Database error on %s",
+        request.url.path
+    )
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "error": "Database Error",
+            "message": "A database operation failed. Please try again."
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+
+    logger.exception(
+        "Unexpected server error on %s",
+        request.url.path
+    )
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "error": "Internal Server Error",
+            "message": "Something went wrong. Please try again later."
+        }
+    )
 
 
 # ==========================================
@@ -102,8 +211,20 @@ class TripRequest(BaseModel):
         allow_inf_nan=False
     )
 
+    @field_validator("vehicle_type", mode="before")
+    @classmethod
+    def normalize_vehicle_type(cls, value):
+
+        if isinstance(value, str):
+            value = value.strip().lower()
+
+            if value == "electric":
+                value = "ev"
+
+        return value
+
     @model_validator(mode="after")
-    def validate_vehicle_details(self):
+    def validate_vehicle_fields(self):
 
         if self.vehicle_type == "petrol":
 
@@ -341,7 +462,6 @@ def save_trip(
     try:
 
         result = get_trip_result(request)
-
         vehicle = request.vehicle_type
 
         new_trip = Trip(
@@ -375,6 +495,11 @@ def save_trip(
         db.commit()
         db.refresh(new_trip)
 
+        logger.info(
+            "Trip saved successfully. Trip ID: %s",
+            new_trip.id
+        )
+
         return {
             "message": "Trip saved successfully",
             "trip_id": new_trip.id,
@@ -392,8 +517,19 @@ def save_trip(
             detail=str(error)
         )
 
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception("Failed to save trip")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to save trip due to a database error"
+        )
+
     except Exception:
         db.rollback()
+        logger.exception("Unexpected error while saving trip")
+
         raise HTTPException(
             status_code=500,
             detail="Unable to save trip"
@@ -503,13 +639,11 @@ def update_trip(
     try:
 
         result = get_trip_result(request)
-
         vehicle = request.vehicle_type
 
         trip.vehicle_type = vehicle
         trip.distance_km = request.distance
 
-        # Petrol details
         trip.mileage = (
             request.mileage if vehicle == "petrol" else None
         )
@@ -518,7 +652,6 @@ def update_trip(
             request.petrol_price if vehicle == "petrol" else None
         )
 
-        # EV details
         trip.efficiency = (
             request.efficiency if vehicle == "ev" else None
         )
@@ -527,16 +660,19 @@ def update_trip(
             request.electricity_price if vehicle == "ev" else None
         )
 
-        # Update consumption
         trip.fuel_used_litres = result.get("fuel_used_litres")
         trip.energy_used_kwh = result.get("energy_used_kwh")
 
-        # Update cost
         trip.total_cost = result["total_cost"]
         trip.cost_per_km = result["cost_per_km"]
 
         db.commit()
         db.refresh(trip)
+
+        logger.info(
+            "Trip updated successfully. Trip ID: %s",
+            trip_id
+        )
 
         return {
             "message": "Trip updated successfully",
@@ -554,8 +690,25 @@ def update_trip(
             detail=str(error)
         )
 
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception(
+            "Failed to update trip ID: %s",
+            trip_id
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to update trip due to a database error"
+        )
+
     except Exception:
         db.rollback()
+        logger.exception(
+            "Unexpected error while updating trip ID: %s",
+            trip_id
+        )
+
         raise HTTPException(
             status_code=500,
             detail="Unable to update trip"
@@ -589,13 +742,35 @@ def delete_trip(
         db.delete(trip)
         db.commit()
 
+        logger.info(
+            "Trip deleted successfully. Trip ID: %s",
+            trip_id
+        )
+
         return {
             "message": "Trip deleted successfully",
             "trip_id": trip_id
         }
 
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception(
+            "Failed to delete trip ID: %s",
+            trip_id
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete trip due to a database error"
+        )
+
     except Exception:
         db.rollback()
+        logger.exception(
+            "Unexpected error while deleting trip ID: %s",
+            trip_id
+        )
+
         raise HTTPException(
             status_code=500,
             detail="Unable to delete trip"
@@ -613,31 +788,32 @@ def get_monthly_analytics(
     db: Session = Depends(get_db)
 ):
 
-    # Validate month
+    if year is not None and year < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Year must be a positive number"
+        )
+
     if month is not None and not 1 <= month <= 12:
         raise HTTPException(
             status_code=400,
             detail="Month must be between 1 and 12"
         )
 
-    # Base query
     filtered_query = db.query(Trip).filter(
         Trip.created_at.isnot(None)
     )
 
-    # Apply year filter
     if year is not None:
         filtered_query = filtered_query.filter(
             extract("year", Trip.created_at) == year
         )
 
-    # Apply month filter
     if month is not None:
         filtered_query = filtered_query.filter(
             extract("month", Trip.created_at) == month
         )
 
-    # Overall statistics
     overall = filtered_query.with_entities(
 
         func.count(Trip.id).label("total_trips"),
@@ -670,7 +846,6 @@ def get_monthly_analytics(
 
     ).first()
 
-    # Group trips by year and month
     month_key = func.strftime(
         "%Y-%m", Trip.created_at
     )
@@ -732,7 +907,6 @@ def get_monthly_analytics(
         .all()
     )
 
-    # Prepare monthly response
     monthly_data = []
 
     for record in monthly_records:
@@ -813,7 +987,6 @@ def download_trip_pdf(
     db: Session = Depends(get_db)
 ):
 
-    # Find saved trip
     trip = (
         db.query(Trip)
         .filter(Trip.id == trip_id)
@@ -826,7 +999,6 @@ def download_trip_pdf(
             detail="Trip not found"
         )
 
-    # Create in-memory PDF
     buffer = BytesIO()
 
     document = SimpleDocTemplate(
@@ -860,7 +1032,6 @@ def download_trip_pdf(
 
     story = []
 
-    # Report heading
     story.append(
         Paragraph("FuelWise", title_style)
     )
@@ -874,7 +1045,6 @@ def download_trip_pdf(
 
     story.append(Spacer(1, 10))
 
-    # Trip date
     trip_date = (
         trip.created_at.strftime("%d %B %Y, %I:%M %p")
         if trip.created_at else "Not available"
@@ -882,7 +1052,6 @@ def download_trip_pdf(
 
     vehicle = trip.vehicle_type.upper()
 
-    # Common trip information
     report_data = [
         ["Trip Information", "Details"],
         ["Trip ID", str(trip.id)],
@@ -891,7 +1060,6 @@ def download_trip_pdf(
         ["Trip Date", trip_date],
     ]
 
-    # Petrol-specific information
     if trip.vehicle_type == "petrol":
 
         report_data.extend([
@@ -905,7 +1073,6 @@ def download_trip_pdf(
             ],
         ])
 
-    # EV-specific information
     elif trip.vehicle_type == "ev":
 
         report_data.extend([
@@ -922,7 +1089,6 @@ def download_trip_pdf(
             ],
         ])
 
-    # Cost information
     report_data.extend([
         [
             "Total Trip Cost",
@@ -934,7 +1100,6 @@ def download_trip_pdf(
         ]
     ])
 
-    # Create details table
     details_table = Table(
         report_data,
         colWidths=[65 * mm, 95 * mm]
@@ -995,7 +1160,6 @@ def download_trip_pdf(
     )
 
     story.append(details_table)
-
     story.append(Spacer(1, 25))
 
     story.append(
@@ -1011,12 +1175,15 @@ def download_trip_pdf(
         )
     )
 
-    # Generate PDF
     document.build(story)
 
     buffer.seek(0)
 
-    # Return downloadable PDF
+    logger.info(
+        "PDF report generated for trip ID: %s",
+        trip_id
+    )
+
     return StreamingResponse(
         buffer,
         media_type="application/pdf",

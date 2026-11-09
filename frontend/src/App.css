@@ -439,3 +439,331 @@ label {
 .error-message p {
   margin: 0;
 }
+
+/* =========================================
+   FUELWISE - RESPONSIVE DESIGN IMPROVEMENTS
+========================================= */
+
+/* Prevent horizontal overflow */
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.app {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+/* Tablet and smaller laptops */
+@media (max-width: 900px) {
+  .topbar {
+    padding: 0 5%;
+  }
+
+  .container {
+    width: 92%;
+  }
+
+  .hero {
+    padding: 45px 0 25px;
+  }
+
+  .planner,
+  .results {
+    padding: 24px;
+  }
+
+  .filter-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .history-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile devices */
+@media (max-width: 650px) {
+  .topbar {
+    height: auto;
+    min-height: 65px;
+    padding: 14px 5%;
+    gap: 10px;
+  }
+
+  .brand {
+    font-size: 19px;
+    gap: 7px;
+  }
+
+  .topbar-label {
+    font-size: 10px;
+    text-align: right;
+  }
+
+  .container {
+    width: 92%;
+  }
+
+  .hero {
+    padding: 35px 0 20px;
+  }
+
+  .hero h1 {
+    font-size: clamp(29px, 8vw, 40px);
+    line-height: 1.2;
+  }
+
+  .hero-text {
+    font-size: 14px;
+  }
+
+  .planner,
+  .results {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .section-heading h2,
+  .results h2,
+  .compare-section h2 {
+    font-size: 21px;
+  }
+
+  .form-grid,
+  .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-options {
+    flex-direction: column;
+  }
+
+  .vehicle-option {
+    width: 100%;
+  }
+
+  .field input {
+    font-size: 16px;
+  }
+
+  .result-card {
+    padding: 17px;
+  }
+
+  .result-card strong {
+    font-size: 21px;
+  }
+
+  .compare-section {
+    padding: 20px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .secondary-button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  /* Charts */
+  .chart-container {
+    padding: 12px;
+    margin-top: 20px;
+    overflow: hidden;
+  }
+
+  .chart-container h3 {
+    font-size: 17px;
+  }
+
+  /* Trip history */
+  .trip-history-container {
+    padding: 12px;
+  }
+
+  .history-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .history-header h2 {
+    font-size: 23px;
+  }
+
+  .history-header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .history-header-actions button,
+  .refresh-btn,
+  .export-btn {
+    width: 100%;
+  }
+
+  .history-summary {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .summary-card {
+    padding: 17px;
+  }
+
+  .history-filter-section {
+    padding: 16px;
+  }
+
+  .filter-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-group input,
+  .filter-group select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .clear-filter-btn {
+    width: 100%;
+  }
+
+  /* Keep table readable with horizontal scrolling */
+  .history-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .history-table {
+    min-width: 750px;
+  }
+
+  /* Analytics */
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-card {
+    padding: 18px;
+  }
+
+  .vehicle-analytics {
+    padding: 17px;
+  }
+
+  .usage-label {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  /* Trip details modal */
+  .trip-details-overlay {
+    padding: 10px;
+    align-items: center;
+  }
+
+  .trip-details-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    padding: 18px;
+    border-radius: 15px;
+  }
+
+  .trip-details-header h2 {
+    font-size: 21px;
+  }
+
+  .trip-details-content {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .trip-detail-card {
+    padding: 15px;
+  }
+
+  .trip-details-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .trip-details-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .trip-details-actions button {
+    width: 100%;
+  }
+
+  .trip-details-footer > button {
+    width: 100%;
+  }
+
+  .history-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* Very small mobile screens */
+@media (max-width: 380px) {
+  .brand {
+    font-size: 17px;
+  }
+
+  .topbar-label {
+    font-size: 9px;
+  }
+
+  .hero h1 {
+    font-size: 28px;
+  }
+
+  .planner,
+  .results {
+    padding: 14px;
+  }
+
+  .trip-details-modal {
+    padding: 14px;
+  }
+
+  .trip-detail-card strong {
+    font-size: 15px;
+  }
+
+  .history-actions {
+    flex-direction: column;
+  }
+
+  .history-actions button {
+    width: 100%;
+  }
+}
