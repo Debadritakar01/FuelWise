@@ -17,6 +17,7 @@ function App() {
   const [result, setResult] = useState(null);
   const [comparison, setComparison] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   // Format currency
@@ -55,12 +56,6 @@ function App() {
         },
         body: JSON.stringify(body),
       });
-      if (response.ok) {
-        // Notify Monthly Analytics about the new trip
-        window.dispatchEvent(
-          new Event("tripsUpdated")
-        );
-      }
 
       const data = await response.json();
 
@@ -77,6 +72,61 @@ function App() {
       setError(err.message || "Could not connect to the backend.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Save calculated trip to SQLite
+  const saveTrip = async () => {
+    if (!result) {
+      setError("Please calculate your trip first.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    const tripData = {
+      vehicle_type: vehicleType,
+      distance: Number(distance),
+      ...(vehicleType === "petrol"
+        ? {
+            mileage: Number(mileage),
+            petrol_price: Number(petrolPrice),
+          }
+        : {
+            efficiency: Number(efficiency),
+            electricity_price: Number(electricityPrice),
+          }),
+    };
+
+    try {
+      const response = await fetch(`${API_URL}/api/trips/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(tripData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail?.[0]?.msg ||
+          data.detail ||
+          "Failed to save trip"
+        );
+      }
+
+      // Notify Trip History and Monthly Analytics
+      // Only after successful database save
+      window.dispatchEvent(new Event("tripsUpdated"));
+
+      alert("Trip saved successfully!");
+    } catch (err) {
+      setError(err.message || "Could not save trip.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -180,6 +230,7 @@ function App() {
                 onClick={() => {
                   setVehicleType("petrol");
                   setResult(null);
+                  setComparison(null);
                   setError("");
                 }}
                 type="button"
@@ -196,6 +247,7 @@ function App() {
                 onClick={() => {
                   setVehicleType("ev");
                   setResult(null);
+                  setComparison(null);
                   setError("");
                 }}
                 type="button"
@@ -218,7 +270,10 @@ function App() {
                 type="number"
                 min="0.1"
                 value={distance}
-                onChange={(e) => setDistance(e.target.value)}
+                onChange={(e) => {
+                  setDistance(e.target.value);
+                  setResult(null);
+                }}
                 placeholder="Enter distance"
               />
             </div>
@@ -235,7 +290,10 @@ function App() {
                     type="number"
                     min="0.1"
                     value={mileage}
-                    onChange={(e) => setMileage(e.target.value)}
+                    onChange={(e) => {
+                      setMileage(e.target.value);
+                      setResult(null);
+                    }}
                     placeholder="Example: 45"
                   />
                 </div>
@@ -250,7 +308,10 @@ function App() {
                     type="number"
                     min="0.1"
                     value={petrolPrice}
-                    onChange={(e) => setPetrolPrice(e.target.value)}
+                    onChange={(e) => {
+                      setPetrolPrice(e.target.value);
+                      setResult(null);
+                    }}
                     placeholder="Example: 105"
                   />
                 </div>
@@ -267,7 +328,10 @@ function App() {
                     type="number"
                     min="0.1"
                     value={efficiency}
-                    onChange={(e) => setEfficiency(e.target.value)}
+                    onChange={(e) => {
+                      setEfficiency(e.target.value);
+                      setResult(null);
+                    }}
                     placeholder="Example: 40"
                   />
                 </div>
@@ -282,7 +346,10 @@ function App() {
                     type="number"
                     min="0.1"
                     value={electricityPrice}
-                    onChange={(e) => setElectricityPrice(e.target.value)}
+                    onChange={(e) => {
+                      setElectricityPrice(e.target.value);
+                      setResult(null);
+                    }}
                     placeholder="Example: 8"
                   />
                 </div>
@@ -295,7 +362,7 @@ function App() {
           <button
             className="primary-button"
             onClick={calculateTrip}
-            disabled={loading}
+            disabled={loading || saving}
           >
             {loading ? "Calculating..." : "Calculate Trip →"}
           </button>
@@ -353,6 +420,16 @@ function App() {
               </div>
 
             </div>
+
+            {/* Save Trip Button */}
+            <button
+              className="primary-button"
+              onClick={saveTrip}
+              disabled={saving || loading}
+            >
+              {saving ? "Saving Trip..." : "Save Trip to History →"}
+            </button>
+
           </section>
         )}
 
@@ -373,7 +450,7 @@ function App() {
           <button
             className="secondary-button"
             onClick={compareVehicles}
-            disabled={loading}
+            disabled={loading || saving}
           >
             {loading ? "Comparing..." : "Compare Both Vehicles"}
           </button>
