@@ -1,14 +1,16 @@
 
-from sqlalchemy import func, extract, case
+from typing import Literal
 from datetime import datetime
 from io import BytesIO
+
+from sqlalchemy import func, extract, case
+from sqlalchemy.orm import Session
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field, model_validator
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
@@ -28,12 +30,17 @@ from database import engine, get_db
 from models import Base, Trip
 
 
+# ==========================================
+# CREATE DATABASE TABLES
+# ==========================================
 
-# Create database tables automatically
 Base.metadata.create_all(bind=engine)
 
 
-# Initialize FastAPI
+# ==========================================
+# INITIALIZE FASTAPI
+# ==========================================
+
 app = FastAPI(
     title="FuelWise API",
     description="Smart Fuel Intelligence System",
@@ -41,7 +48,10 @@ app = FastAPI(
 )
 
 
-# React frontend connection
+# ==========================================
+# CORS CONFIGURATION
+# ==========================================
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -55,28 +65,119 @@ app.add_middleware(
 
 
 # ==========================================
-# REQUEST MODELS
+# REQUEST MODELS WITH VALIDATION
 # ==========================================
 
-# Petrol or EV request model
 class TripRequest(BaseModel):
-    vehicle_type: str
-    distance: float = Field(gt=0)
 
-    mileage: float | None = Field(default=None, gt=0)
-    petrol_price: float | None = Field(default=None, gt=0)
+    vehicle_type: Literal["petrol", "ev"]
 
-    efficiency: float | None = Field(default=None, gt=0)
-    electricity_price: float | None = Field(default=None, gt=0)
+    distance: float = Field(
+        gt=0,
+        allow_inf_nan=False,
+        description="Distance must be greater than zero"
+    )
+
+    mileage: float | None = Field(
+        default=None,
+        gt=0,
+        allow_inf_nan=False
+    )
+
+    petrol_price: float | None = Field(
+        default=None,
+        gt=0,
+        allow_inf_nan=False
+    )
+
+    efficiency: float | None = Field(
+        default=None,
+        gt=0,
+        allow_inf_nan=False
+    )
+
+    electricity_price: float | None = Field(
+        default=None,
+        gt=0,
+        allow_inf_nan=False
+    )
+
+    @model_validator(mode="after")
+    def validate_vehicle_details(self):
+
+        if self.vehicle_type == "petrol":
+
+            if self.mileage is None:
+                raise ValueError(
+                    "Mileage is required for petrol vehicles"
+                )
+
+            if self.petrol_price is None:
+                raise ValueError(
+                    "Petrol price is required"
+                )
+
+            if (
+                self.efficiency is not None
+                or self.electricity_price is not None
+            ):
+                raise ValueError(
+                    "EV details are not allowed for petrol vehicles"
+                )
+
+        elif self.vehicle_type == "ev":
+
+            if self.efficiency is None:
+                raise ValueError(
+                    "EV efficiency is required"
+                )
+
+            if self.electricity_price is None:
+                raise ValueError(
+                    "Electricity price is required"
+                )
+
+            if (
+                self.mileage is not None
+                or self.petrol_price is not None
+            ):
+                raise ValueError(
+                    "Petrol details are not allowed for EV vehicles"
+                )
+
+        return self
 
 
-# EV vs Petrol comparison request model
+# ==========================================
+# PETROL VS EV COMPARISON REQUEST MODEL
+# ==========================================
+
 class CompareRequest(BaseModel):
-    distance: float = Field(gt=0)
-    mileage: float = Field(gt=0)
-    petrol_price: float = Field(gt=0)
-    efficiency: float = Field(gt=0)
-    electricity_price: float = Field(gt=0)
+
+    distance: float = Field(
+        gt=0,
+        allow_inf_nan=False
+    )
+
+    mileage: float = Field(
+        gt=0,
+        allow_inf_nan=False
+    )
+
+    petrol_price: float = Field(
+        gt=0,
+        allow_inf_nan=False
+    )
+
+    efficiency: float = Field(
+        gt=0,
+        allow_inf_nan=False
+    )
+
+    electricity_price: float = Field(
+        gt=0,
+        allow_inf_nan=False
+    )
 
 
 # ==========================================
@@ -85,43 +186,26 @@ class CompareRequest(BaseModel):
 
 def get_trip_result(request: TripRequest):
 
-    vehicle = request.vehicle_type.lower().strip()
+    if request.vehicle_type == "petrol":
 
-    if vehicle == "petrol":
-
-        if request.mileage is None or request.petrol_price is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Mileage and petrol price are required"
-            )
-
-        result = calculate_petrol(
+        return calculate_petrol(
             request.distance,
             request.mileage,
             request.petrol_price
         )
 
-    elif vehicle in ["ev", "electric"]:
+    elif request.vehicle_type == "ev":
 
-        if request.efficiency is None or request.electricity_price is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Efficiency and electricity price are required"
-            )
-
-        result = calculate_ev(
+        return calculate_ev(
             request.distance,
             request.efficiency,
             request.electricity_price
         )
 
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail="Vehicle type must be Petrol or EV"
-        )
-
-    return result
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid vehicle type"
+    )
 
 
 # ==========================================
@@ -184,6 +268,9 @@ def estimate_trip(request: TripRequest):
     try:
         return get_trip_result(request)
 
+    except HTTPException:
+        raise
+
     except ValueError as error:
         raise HTTPException(
             status_code=400,
@@ -198,38 +285,47 @@ def estimate_trip(request: TripRequest):
 @app.post("/api/compare")
 def compare_vehicles(request: CompareRequest):
 
-    petrol = calculate_petrol(
-        request.distance,
-        request.mileage,
-        request.petrol_price
-    )
+    try:
 
-    ev = calculate_ev(
-        request.distance,
-        request.efficiency,
-        request.electricity_price
-    )
+        petrol = calculate_petrol(
+            request.distance,
+            request.mileage,
+            request.petrol_price
+        )
 
-    savings = round(
-        petrol["total_cost"] - ev["total_cost"], 2
-    )
+        ev = calculate_ev(
+            request.distance,
+            request.efficiency,
+            request.electricity_price
+        )
 
-    if savings > 0:
-        recommendation = "EV is cheaper"
+        savings = round(
+            petrol["total_cost"] - ev["total_cost"],
+            2
+        )
 
-    elif savings < 0:
-        recommendation = "Petrol is cheaper"
+        if savings > 0:
+            recommendation = "EV is cheaper"
 
-    else:
-        recommendation = "Both have equal running costs"
+        elif savings < 0:
+            recommendation = "Petrol is cheaper"
 
-    return {
-        "distance_km": request.distance,
-        "petrol": petrol,
-        "electric": ev,
-        "savings": abs(savings),
-        "cheaper_vehicle": recommendation
-    }
+        else:
+            recommendation = "Both have equal running costs"
+
+        return {
+            "distance_km": request.distance,
+            "petrol": petrol,
+            "electric": ev,
+            "savings": abs(savings),
+            "cheaper_vehicle": recommendation
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
 
 
 # ==========================================
@@ -243,12 +339,10 @@ def save_trip(
 ):
 
     try:
+
         result = get_trip_result(request)
 
-        vehicle = request.vehicle_type.lower().strip()
-
-        if vehicle == "electric":
-            vehicle = "ev"
+        vehicle = request.vehicle_type
 
         new_trip = Trip(
             vehicle_type=vehicle,
@@ -290,6 +384,13 @@ def save_trip(
     except HTTPException:
         db.rollback()
         raise
+
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
 
     except Exception:
         db.rollback()
@@ -374,7 +475,8 @@ def get_trip_by_id(
         )
 
     return trip_to_dict(trip)
-    
+
+
 # ==========================================
 # API 7: UPDATE AN EXISTING SAVED TRIP
 # ==========================================
@@ -386,7 +488,6 @@ def update_trip(
     db: Session = Depends(get_db)
 ):
 
-    # Find existing trip
     trip = (
         db.query(Trip)
         .filter(Trip.id == trip_id)
@@ -400,15 +501,11 @@ def update_trip(
         )
 
     try:
-        # Recalculate trip cost
+
         result = get_trip_result(request)
 
-        vehicle = request.vehicle_type.lower().strip()
+        vehicle = request.vehicle_type
 
-        if vehicle == "electric":
-            vehicle = "ev"
-
-        # Update existing database record
         trip.vehicle_type = vehicle
         trip.distance_km = request.distance
 
@@ -434,11 +531,10 @@ def update_trip(
         trip.fuel_used_litres = result.get("fuel_used_litres")
         trip.energy_used_kwh = result.get("energy_used_kwh")
 
-        # Update total cost
+        # Update cost
         trip.total_cost = result["total_cost"]
         trip.cost_per_km = result["cost_per_km"]
 
-        # Save changes
         db.commit()
         db.refresh(trip)
 
@@ -467,7 +563,7 @@ def update_trip(
 
 
 # ==========================================
-# API 7: DELETE SAVED TRIP
+# API 8: DELETE SAVED TRIP
 # ==========================================
 
 @app.delete("/api/trips/{trip_id}")
@@ -488,17 +584,26 @@ def delete_trip(
             detail="Trip not found"
         )
 
-    db.delete(trip)
-    db.commit()
+    try:
 
-    return {
-        "message": "Trip deleted successfully",
-        "trip_id": trip_id
-    }
+        db.delete(trip)
+        db.commit()
+
+        return {
+            "message": "Trip deleted successfully",
+            "trip_id": trip_id
+        }
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete trip"
+        )
 
 
 # ==========================================
-# API 8: MONTHLY TRIP ANALYTICS WITH FILTERS
+# API 9: MONTHLY TRIP ANALYTICS WITH FILTERS
 # ==========================================
 
 @app.get("/api/analytics/monthly")
@@ -532,7 +637,7 @@ def get_monthly_analytics(
             extract("month", Trip.created_at) == month
         )
 
-    # Overall statistics for selected filters
+    # Overall statistics
     overall = filtered_query.with_entities(
 
         func.count(Trip.id).label("total_trips"),
@@ -565,7 +670,7 @@ def get_monthly_analytics(
 
     ).first()
 
-    # Group selected trips by year and month
+    # Group trips by year and month
     month_key = func.strftime(
         "%Y-%m", Trip.created_at
     )
@@ -581,7 +686,6 @@ def get_monthly_analytics(
                 func.sum(Trip.distance_km), 0
             ).label("total_distance"),
 
-            # Petrol distance
             func.coalesce(
                 func.sum(
                     case(
@@ -591,7 +695,6 @@ def get_monthly_analytics(
                 ), 0
             ).label("petrol_distance"),
 
-            # EV distance
             func.coalesce(
                 func.sum(
                     case(
@@ -601,12 +704,10 @@ def get_monthly_analytics(
                 ), 0
             ).label("ev_distance"),
 
-            # Total expenses
             func.coalesce(
                 func.sum(Trip.total_cost), 0
             ).label("total_expenses"),
 
-            # Petrol expenses
             func.coalesce(
                 func.sum(
                     case(
@@ -616,7 +717,6 @@ def get_monthly_analytics(
                 ), 0
             ).label("petrol_expense"),
 
-            # EV expenses
             func.coalesce(
                 func.sum(
                     case(
@@ -638,7 +738,8 @@ def get_monthly_analytics(
     for record in monthly_records:
 
         date_object = datetime.strptime(
-            record.month_key, "%Y-%m"
+            record.month_key,
+            "%Y-%m"
         )
 
         monthly_data.append({
@@ -673,7 +774,6 @@ def get_monthly_analytics(
             )
         })
 
-    # Return analytics
     return {
 
         "filters": {
@@ -702,8 +802,9 @@ def get_monthly_analytics(
         "monthly_data": monthly_data
     }
 
+
 # ==========================================
-# API 9: GENERATE PDF REPORT FOR A TRIP
+# API 10: GENERATE PDF REPORT FOR A TRIP
 # ==========================================
 
 @app.get("/api/trips/{trip_id}/pdf")
@@ -712,7 +813,7 @@ def download_trip_pdf(
     db: Session = Depends(get_db)
 ):
 
-    # Find the saved trip
+    # Find saved trip
     trip = (
         db.query(Trip)
         .filter(Trip.id == trip_id)
@@ -725,7 +826,7 @@ def download_trip_pdf(
             detail="Trip not found"
         )
 
-    # Create an in-memory PDF
+    # Create in-memory PDF
     buffer = BytesIO()
 
     document = SimpleDocTemplate(
@@ -910,7 +1011,7 @@ def download_trip_pdf(
         )
     )
 
-    # Generate the PDF
+    # Generate PDF
     document.build(story)
 
     buffer.seek(0)
