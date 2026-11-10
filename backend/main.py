@@ -977,6 +977,7 @@ def get_monthly_analytics(
     }
 
 
+
 # ==========================================
 # API 10: GENERATE PDF REPORT FOR A TRIP
 # ==========================================
@@ -986,7 +987,6 @@ def download_trip_pdf(
     trip_id: int,
     db: Session = Depends(get_db)
 ):
-
     trip = (
         db.query(Trip)
         .filter(Trip.id == trip_id)
@@ -1001,194 +1001,188 @@ def download_trip_pdf(
 
     buffer = BytesIO()
 
-    document = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=20 * mm,
-        leftMargin=20 * mm,
-        topMargin=20 * mm,
-        bottomMargin=20 * mm
-    )
+    def format_number(value, decimals=2):
+        if value is None:
+            return "Not available"
+        return f"{float(value):,.{decimals}f}"
 
-    styles = getSampleStyleSheet()
-
-    title_style = ParagraphStyle(
-        "FuelWiseTitle",
-        parent=styles["Title"],
-        fontSize=22,
-        textColor=colors.HexColor("#176B55"),
-        alignment=TA_CENTER,
-        spaceAfter=8
-    )
-
-    subtitle_style = ParagraphStyle(
-        "FuelWiseSubtitle",
-        parent=styles["Normal"],
-        fontSize=10,
-        alignment=TA_CENTER,
-        textColor=colors.grey,
-        spaceAfter=20
-    )
-
-    story = []
-
-    story.append(
-        Paragraph("FuelWise", title_style)
-    )
-
-    story.append(
-        Paragraph(
-            "Smart Fuel Intelligence - Trip Report",
-            subtitle_style
+    try:
+        document = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=20 * mm,
+            leftMargin=20 * mm,
+            topMargin=20 * mm,
+            bottomMargin=20 * mm,
+            title=f"FuelWise Trip Report - {trip.id}",
+            author="FuelWise"
         )
-    )
 
-    story.append(Spacer(1, 10))
+        styles = getSampleStyleSheet()
 
-    trip_date = (
-        trip.created_at.strftime("%d %B %Y, %I:%M %p")
-        if trip.created_at else "Not available"
-    )
+        title_style = ParagraphStyle(
+            "FuelWiseTitle",
+            parent=styles["Title"],
+            fontSize=24,
+            textColor=colors.HexColor("#176B55"),
+            alignment=TA_CENTER,
+            spaceAfter=8
+        )
 
-    vehicle = trip.vehicle_type.upper()
+        subtitle_style = ParagraphStyle(
+            "FuelWiseSubtitle",
+            parent=styles["Normal"],
+            fontSize=10,
+            alignment=TA_CENTER,
+            textColor=colors.grey,
+            spaceAfter=20
+        )
 
-    report_data = [
-        ["Trip Information", "Details"],
-        ["Trip ID", str(trip.id)],
-        ["Vehicle Type", vehicle],
-        ["Distance Travelled", f"{trip.distance_km:.2f} km"],
-        ["Trip Date", trip_date],
-    ]
-
-    if trip.vehicle_type == "petrol":
-
-        report_data.extend([
-            ["Mileage", f"{trip.mileage} km/L"],
-            ["Petrol Price", f"Rs. {trip.petrol_price}/L"],
-            [
-                "Fuel Consumed",
-                f"{trip.fuel_used_litres:.2f} litres"
-                if trip.fuel_used_litres is not None
-                else "Not available"
-            ],
-        ])
-
-    elif trip.vehicle_type == "ev":
-
-        report_data.extend([
-            ["EV Efficiency", f"{trip.efficiency} km/kWh"],
-            [
-                "Electricity Price",
-                f"Rs. {trip.electricity_price}/kWh"
-            ],
-            [
-                "Energy Consumed",
-                f"{trip.energy_used_kwh:.2f} kWh"
-                if trip.energy_used_kwh is not None
-                else "Not available"
-            ],
-        ])
-
-    report_data.extend([
-        [
-            "Total Trip Cost",
-            f"Rs. {trip.total_cost:.2f}"
-        ],
-        [
-            "Cost Per Kilometre",
-            f"Rs. {trip.cost_per_km:.2f}/km"
+        story = [
+            Paragraph("FuelWise", title_style),
+            Paragraph(
+                "Smart Fuel Intelligence - Trip Report",
+                subtitle_style
+            ),
+            Spacer(1, 10)
         ]
-    ])
 
-    details_table = Table(
-        report_data,
-        colWidths=[65 * mm, 95 * mm]
-    )
-
-    details_table.setStyle(
-        TableStyle([
-            (
-                "BACKGROUND",
-                (0, 0),
-                (-1, 0),
-                colors.HexColor("#176B55")
-            ),
-            (
-                "TEXTCOLOR",
-                (0, 0),
-                (-1, 0),
-                colors.white
-            ),
-            (
-                "FONTNAME",
-                (0, 0),
-                (-1, 0),
-                "Helvetica-Bold"
-            ),
-            (
-                "FONTNAME",
-                (0, 1),
-                (0, -1),
-                "Helvetica-Bold"
-            ),
-            (
-                "BACKGROUND",
-                (0, 1),
-                (-1, -1),
-                colors.HexColor("#F4F8F6")
-            ),
-            (
-                "GRID",
-                (0, 0),
-                (-1, -1),
-                0.5,
-                colors.HexColor("#D5E2DC")
-            ),
-            (
-                "PADDING",
-                (0, 0),
-                (-1, -1),
-                10
-            ),
-            (
-                "VALIGN",
-                (0, 0),
-                (-1, -1),
-                "MIDDLE"
-            ),
-        ])
-    )
-
-    story.append(details_table)
-    story.append(Spacer(1, 25))
-
-    story.append(
-        Paragraph(
-            "Thank you for using FuelWise!",
-            ParagraphStyle(
-                "Footer",
-                parent=styles["Normal"],
-                alignment=TA_CENTER,
-                textColor=colors.HexColor("#176B55"),
-                fontSize=12
-            )
+        trip_date = (
+            trip.created_at.strftime("%d %B %Y, %I:%M %p")
+            if trip.created_at
+            else "Not available"
         )
-    )
 
-    document.build(story)
+        report_data = [
+            ["Trip Information", "Details"],
+            ["Trip ID", str(trip.id)],
+            ["Vehicle Type", trip.vehicle_type.upper()],
+            [
+                "Distance Travelled",
+                f"{format_number(trip.distance_km)} km"
+            ],
+            ["Trip Date", trip_date]
+        ]
 
-    buffer.seek(0)
+        if trip.vehicle_type == "petrol":
+            report_data.extend([
+                [
+                    "Mileage",
+                    f"{format_number(trip.mileage)} km/L"
+                ],
+                [
+                    "Petrol Price",
+                    f"Rs. {format_number(trip.petrol_price)}/L"
+                ],
+                [
+                    "Fuel Consumed",
+                    f"{format_number(trip.fuel_used_litres)} litres"
+                ]
+            ])
 
-    logger.info(
-        "PDF report generated for trip ID: %s",
-        trip_id
-    )
+        elif trip.vehicle_type == "ev":
+            report_data.extend([
+                [
+                    "EV Efficiency",
+                    f"{format_number(trip.efficiency)} km/kWh"
+                ],
+                [
+                    "Electricity Price",
+                    f"Rs. {format_number(trip.electricity_price)}/kWh"
+                ],
+                [
+                    "Energy Consumed",
+                    f"{format_number(trip.energy_used_kwh)} kWh"
+                ]
+            ])
 
-    return StreamingResponse(
-        buffer,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition":
-                f'attachment; filename="FuelWise_Trip_{trip.id}.pdf"'
-        }
-    )
+        report_data.extend([
+            [
+                "Total Trip Cost",
+                f"Rs. {format_number(trip.total_cost)}"
+            ],
+            [
+                "Cost Per Kilometre",
+                f"Rs. {format_number(trip.cost_per_km)}/km"
+            ]
+        ])
+
+        details_table = Table(
+            report_data,
+            colWidths=[65 * mm, 95 * mm],
+            repeatRows=1
+        )
+
+        details_table.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0),
+                 colors.HexColor("#176B55")),
+
+                ("TEXTCOLOR", (0, 0), (-1, 0),
+                 colors.white),
+
+                ("FONTNAME", (0, 0), (-1, 0),
+                 "Helvetica-Bold"),
+
+                ("FONTNAME", (0, 1), (0, -1),
+                 "Helvetica-Bold"),
+
+                ("BACKGROUND", (0, 1), (-1, -1),
+                 colors.HexColor("#F4F8F6")),
+
+                ("BACKGROUND", (0, -2), (-1, -1),
+                 colors.HexColor("#DCEFE5")),
+
+                ("GRID", (0, 0), (-1, -1),
+                 0.5, colors.HexColor("#D5E2DC")),
+
+                ("PADDING", (0, 0), (-1, -1), 10),
+
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE")
+            ])
+        )
+
+        story.extend([
+            details_table,
+            Spacer(1, 25),
+            Paragraph(
+                "Thank you for using FuelWise!",
+                ParagraphStyle(
+                    "FuelWiseFooter",
+                    parent=styles["Normal"],
+                    alignment=TA_CENTER,
+                    textColor=colors.HexColor("#176B55"),
+                    fontSize=12
+                )
+            )
+        ])
+
+        document.build(story)
+        buffer.seek(0)
+
+        logger.info(
+            "PDF report generated for trip ID: %s",
+            trip_id
+        )
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition":
+                    f'attachment; filename="FuelWise_Trip_{trip.id}.pdf"'
+            }
+        )
+
+    except Exception:
+        buffer.close()
+
+        logger.exception(
+            "PDF generation failed for trip ID: %s",
+            trip_id
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate PDF report"
+        )

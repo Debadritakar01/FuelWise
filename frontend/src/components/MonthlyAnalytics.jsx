@@ -18,20 +18,36 @@ import "./MonthlyAnalytics.css";
 
 const API_URL = "http://127.0.0.1:8000";
 
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+];
+
 function MonthlyAnalytics() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const currentDate = new Date();
+  const currentYear = String(currentDate.getFullYear());
 
   const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedYear, setSelectedYear] = useState(currentYear);
 
-  const [selectedYear, setSelectedYear] = useState(
-    String(currentDate.getFullYear())
-  );
+  // =====================================
+  // FETCH MONTHLY ANALYTICS
+  // =====================================
 
-  // Fetch monthly analytics
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
@@ -52,13 +68,18 @@ function MonthlyAnalytics() {
       setAnalytics(data);
 
     } catch (err) {
-      setError(err.message);
+      setError(
+        err.message || "Something went wrong."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial loading and automatic refresh
+  // =====================================
+  // INITIAL LOAD AND AUTO REFRESH
+  // =====================================
+
   useEffect(() => {
     fetchAnalytics();
 
@@ -79,7 +100,10 @@ function MonthlyAnalytics() {
     };
   }, []);
 
-  // Loading state
+  // =====================================
+  // LOADING STATE
+  // =====================================
+
   if (loading) {
     return (
       <div className="monthly-analytics-section">
@@ -92,7 +116,10 @@ function MonthlyAnalytics() {
     );
   }
 
-  // Error state
+  // =====================================
+  // ERROR STATE
+  // =====================================
+
   if (error) {
     return (
       <div className="monthly-analytics-section">
@@ -111,13 +138,15 @@ function MonthlyAnalytics() {
     );
   }
 
-  // Prepare monthly data
+  // =====================================
+  // PREPARE MONTHLY DATA
+  // =====================================
+
   const monthlyData = (
     analytics?.monthly_data || []
   ).map((item) => {
     const monthNumber =
-      new Date(`${item.month} 1, ${item.year}`)
-        .getMonth() + 1;
+      MONTHS.indexOf(item.month) + 1;
 
     return {
       ...item,
@@ -151,16 +180,25 @@ function MonthlyAnalytics() {
       evDistance:
         Number(item.ev_distance) || 0
     };
-  });
+  }).filter((item) => item.monthNumber > 0);
 
-  // Available years
+  // =====================================
+  // AVAILABLE YEARS
+  // =====================================
+
   const availableYears = [
-    ...new Set(
-      monthlyData.map((item) => String(item.year))
-    )
+    ...new Set([
+      currentYear,
+      ...monthlyData.map((item) =>
+        String(item.year)
+      )
+    ])
   ].sort((a, b) => Number(b) - Number(a));
 
-  // Apply month and year filters
+  // =====================================
+  // APPLY MONTH AND YEAR FILTERS
+  // =====================================
+
   const filteredMonthlyData = monthlyData.filter(
     (item) => {
       const yearMatch =
@@ -174,7 +212,10 @@ function MonthlyAnalytics() {
     }
   );
 
-  // Calculate filtered totals
+  // =====================================
+  // CALCULATE FILTERED TOTALS
+  // =====================================
+
   const filteredTotals = filteredMonthlyData.reduce(
     (totals, item) => ({
       totalTrips:
@@ -210,29 +251,92 @@ function MonthlyAnalytics() {
   );
 
   // =====================================
+  // FORMAT CURRENCY
+  // =====================================
+
+  const formatCurrency = (value) =>
+    `₹${Number(value || 0).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+
+  // =====================================
+  // SMART MONTHLY SPENDING INSIGHTS
+  // =====================================
+
+  const monthsWithTrips = filteredMonthlyData.filter(
+    (item) => item.totalTrips > 0
+  );
+
+  const monthsWithExpenses = monthsWithTrips.filter(
+    (item) => item.totalExpense > 0
+  );
+
+  // Highest spending month
+  const highestSpendingMonth =
+    monthsWithExpenses.length > 0
+      ? [...monthsWithExpenses].sort(
+          (a, b) => b.totalExpense - a.totalExpense
+        )[0]
+      : null;
+
+  // Lowest spending month
+  const lowestSpendingMonth =
+    monthsWithExpenses.length > 0
+      ? [...monthsWithExpenses].sort(
+          (a, b) => a.totalExpense - b.totalExpense
+        )[0]
+      : null;
+
+  // Highest travel distance month
+  const highestDistanceMonth =
+    monthsWithTrips.length > 0
+      ? [...monthsWithTrips].sort(
+          (a, b) => b.totalDistance - a.totalDistance
+        )[0]
+      : null;
+
+  // Average monthly spending
+  const averageMonthlySpending =
+    monthsWithExpenses.length > 0
+      ? filteredTotals.totalExpenses /
+        monthsWithExpenses.length
+      : 0;
+
+  // Petrol spending percentage
+  const petrolSpendingPercentage =
+    filteredTotals.totalExpenses > 0
+      ? (filteredTotals.petrolExpense /
+          filteredTotals.totalExpenses) * 100
+      : 0;
+
+  // EV spending percentage
+  const evSpendingPercentage =
+    filteredTotals.totalExpenses > 0
+      ? (filteredTotals.evExpense /
+          filteredTotals.totalExpenses) * 100
+      : 0;
+
+  // =====================================
   // FUELWISE SAVINGS INSIGHTS
   // =====================================
 
-  // Petrol running cost per kilometre
   const petrolCostPerKm =
     filteredTotals.petrolDistance > 0
       ? filteredTotals.petrolExpense /
         filteredTotals.petrolDistance
       : 0;
 
-  // EV running cost per kilometre
   const evCostPerKm =
     filteredTotals.evDistance > 0
       ? filteredTotals.evExpense /
         filteredTotals.evDistance
       : 0;
 
-  // Both vehicle types must have recorded data
   const hasComparableData =
     filteredTotals.petrolDistance > 0 &&
     filteredTotals.evDistance > 0;
 
-  // Compare both vehicles over the same distance
   const comparisonDistance =
     filteredTotals.totalDistance;
 
@@ -245,13 +349,11 @@ function MonthlyAnalytics() {
   const estimatedSavings =
     estimatedPetrolCost - estimatedEVCost;
 
-  // Calculate potential savings percentage
   const savingsPercentage =
     estimatedPetrolCost > 0
       ? (estimatedSavings / estimatedPetrolCost) * 100
       : 0;
 
-  // Smart recommendation
   let recommendation = "";
 
   if (hasComparableData) {
@@ -267,10 +369,15 @@ function MonthlyAnalytics() {
     }
   }
 
+  // =====================================
+  // MAIN DASHBOARD
+  // =====================================
+
   return (
     <div className="monthly-analytics-section">
 
-      {/* Header */}
+      {/* HEADER */}
+
       <div className="monthly-header">
         <h2>Monthly Analytics</h2>
 
@@ -280,7 +387,8 @@ function MonthlyAnalytics() {
         </p>
       </div>
 
-      {/* Month and Year Filters */}
+      {/* MONTH AND YEAR FILTERS */}
+
       <div className="monthly-filters">
 
         <div className="monthly-filter-group">
@@ -296,18 +404,15 @@ function MonthlyAnalytics() {
             }
           >
             <option value="all">All Months</option>
-            <option value="1">January</option>
-            <option value="2">February</option>
-            <option value="3">March</option>
-            <option value="4">April</option>
-            <option value="5">May</option>
-            <option value="6">June</option>
-            <option value="7">July</option>
-            <option value="8">August</option>
-            <option value="9">September</option>
-            <option value="10">October</option>
-            <option value="11">November</option>
-            <option value="12">December</option>
+
+            {MONTHS.map((month, index) => (
+              <option
+                key={month}
+                value={String(index + 1)}
+              >
+                {month}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -334,10 +439,7 @@ function MonthlyAnalytics() {
         <button
           onClick={() => {
             setSelectedMonth("all");
-
-            setSelectedYear(
-              String(currentDate.getFullYear())
-            );
+            setSelectedYear(currentYear);
           }}
         >
           Reset Filters
@@ -345,7 +447,8 @@ function MonthlyAnalytics() {
 
       </div>
 
-      {/* Summary Cards */}
+      {/* SUMMARY CARDS */}
+
       <div className="monthly-summary-grid">
 
         <div className="monthly-summary-card">
@@ -362,30 +465,169 @@ function MonthlyAnalytics() {
 
         <div className="monthly-summary-card">
           <h3>
-            ₹{filteredTotals.totalExpenses.toFixed(2)}
+            {formatCurrency(filteredTotals.totalExpenses)}
           </h3>
           <p>Total Expenses</p>
         </div>
 
         <div className="monthly-summary-card">
           <h3>
-            ₹{filteredTotals.petrolExpense.toFixed(2)}
+            {formatCurrency(filteredTotals.petrolExpense)}
           </h3>
           <p>Petrol Expenses</p>
         </div>
 
         <div className="monthly-summary-card">
           <h3>
-            ₹{filteredTotals.evExpense.toFixed(2)}
+            {formatCurrency(filteredTotals.evExpense)}
           </h3>
           <p>EV Expenses</p>
         </div>
 
       </div>
 
-      {/* ================================= */}
+      {/* SMART MONTHLY SPENDING INSIGHTS */}
+
+      <div className="smart-insights-section">
+
+        <div className="monthly-chart-heading">
+          <h3>📊 Smart Monthly Spending Insights</h3>
+
+          <p>
+            Understand your travel expenses and spending
+            patterns for the selected period.
+          </p>
+        </div>
+
+        <div className="smart-insights-grid">
+
+          <div className="smart-insight-card">
+            <span>Highest Spending Month</span>
+
+            <h2>
+              {highestSpendingMonth
+                ? formatCurrency(highestSpendingMonth.totalExpense)
+                : "₹0.00"}
+            </h2>
+
+            <p>
+              {highestSpendingMonth
+                ? highestSpendingMonth.month
+                : "No expense data"}
+            </p>
+          </div>
+
+          <div className="smart-insight-card">
+            <span>Lowest Spending Month</span>
+
+            <h2>
+              {lowestSpendingMonth
+                ? formatCurrency(lowestSpendingMonth.totalExpense)
+                : "₹0.00"}
+            </h2>
+
+            <p>
+              {lowestSpendingMonth
+                ? lowestSpendingMonth.month
+                : "No expense data"}
+            </p>
+          </div>
+
+          <div className="smart-insight-card">
+            <span>Average Monthly Spending</span>
+
+            <h2>
+              {formatCurrency(averageMonthlySpending)}
+            </h2>
+
+            <p>
+              Average per month with recorded expenses
+            </p>
+          </div>
+
+          <div className="smart-insight-card">
+            <span>Highest Travel Distance</span>
+
+            <h2>
+              {highestDistanceMonth
+                ? `${highestDistanceMonth.totalDistance.toFixed(2)} km`
+                : "0 km"}
+            </h2>
+
+            <p>
+              {highestDistanceMonth
+                ? highestDistanceMonth.month
+                : "No travel data"}
+            </p>
+          </div>
+
+        </div>
+
+        {/* PETROL VS EV SPENDING */}
+
+        <div className="spending-percentage-card">
+
+          <h3>Petrol vs EV Spending Distribution</h3>
+
+          <p>
+            See how your total travel expenses are distributed.
+          </p>
+
+          <div className="spending-percentage-row">
+
+            <div className="spending-percentage-label">
+              <strong>Petrol</strong>
+
+              <strong>
+                {petrolSpendingPercentage.toFixed(1)}%
+              </strong>
+            </div>
+
+            <div className="spending-progress">
+              <div
+                className="spending-progress-petrol"
+                style={{
+                  width: `${petrolSpendingPercentage}%`
+                }}
+              />
+            </div>
+
+            <p>
+              {formatCurrency(filteredTotals.petrolExpense)}
+            </p>
+
+          </div>
+
+          <div className="spending-percentage-row">
+
+            <div className="spending-percentage-label">
+              <strong>Electric Vehicle</strong>
+
+              <strong>
+                {evSpendingPercentage.toFixed(1)}%
+              </strong>
+            </div>
+
+            <div className="spending-progress">
+              <div
+                className="spending-progress-ev"
+                style={{
+                  width: `${evSpendingPercentage}%`
+                }}
+              />
+            </div>
+
+            <p>
+              {formatCurrency(filteredTotals.evExpense)}
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
       {/* FUELWISE SAVINGS INSIGHTS */}
-      {/* ================================= */}
 
       <div className="savings-insights-section">
 
@@ -407,7 +649,7 @@ function MonthlyAnalytics() {
                 <h4>Petrol Cost / KM</h4>
 
                 <h2>
-                  ₹{petrolCostPerKm.toFixed(2)}
+                  {formatCurrency(petrolCostPerKm)}
                 </h2>
               </div>
 
@@ -415,7 +657,7 @@ function MonthlyAnalytics() {
                 <h4>EV Cost / KM</h4>
 
                 <h2>
-                  ₹{evCostPerKm.toFixed(2)}
+                  {formatCurrency(evCostPerKm)}
                 </h2>
               </div>
 
@@ -423,7 +665,7 @@ function MonthlyAnalytics() {
                 <h4>Estimated Petrol Cost</h4>
 
                 <h2>
-                  ₹{estimatedPetrolCost.toFixed(2)}
+                  {formatCurrency(estimatedPetrolCost)}
                 </h2>
               </div>
 
@@ -431,13 +673,12 @@ function MonthlyAnalytics() {
                 <h4>Estimated EV Cost</h4>
 
                 <h2>
-                  ₹{estimatedEVCost.toFixed(2)}
+                  {formatCurrency(estimatedEVCost)}
                 </h2>
               </div>
 
             </div>
 
-            {/* Savings Highlight */}
             <div className="savings-highlight-card">
 
               <h3>
@@ -447,7 +688,7 @@ function MonthlyAnalytics() {
               </h3>
 
               <h2>
-                ₹{Math.abs(estimatedSavings).toFixed(2)}
+                {formatCurrency(Math.abs(estimatedSavings))}
               </h2>
 
               <p>
@@ -462,9 +703,7 @@ function MonthlyAnalytics() {
                   : `${Math.abs(savingsPercentage).toFixed(2)}% higher EV running cost.`}
               </p>
 
-              <strong>
-                {recommendation}
-              </strong>
+              <strong>{recommendation}</strong>
 
             </div>
 
@@ -485,9 +724,7 @@ function MonthlyAnalytics() {
 
       </div>
 
-      {/* ================================= */}
       {/* FILTERED MONTHLY DATA */}
-      {/* ================================= */}
 
       {filteredMonthlyData.length === 0 ? (
 
@@ -504,7 +741,8 @@ function MonthlyAnalytics() {
 
         <>
 
-          {/* Monthly Expense Comparison */}
+          {/* MONTHLY EXPENSE COMPARISON */}
+
           <div className="monthly-chart-card">
 
             <div className="monthly-chart-heading">
@@ -515,27 +753,20 @@ function MonthlyAnalytics() {
               </p>
             </div>
 
-            <ResponsiveContainer
-              width="100%"
-              height={320}
-            >
+            <ResponsiveContainer width="100%" height={320}>
               <BarChart data={filteredMonthlyData}>
 
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                />
+                <CartesianGrid strokeDasharray="3 3" />
 
                 <XAxis dataKey="month" />
 
                 <YAxis
-                  tickFormatter={(value) =>
-                    `₹${value}`
-                  }
+                  tickFormatter={(value) => `₹${value}`}
                 />
 
                 <Tooltip
                   formatter={(value) =>
-                    `₹${Number(value).toFixed(2)}`
+                    formatCurrency(value)
                   }
                 />
 
@@ -560,7 +791,8 @@ function MonthlyAnalytics() {
 
           </div>
 
-          {/* Monthly Distance Comparison */}
+          {/* MONTHLY DISTANCE COMPARISON */}
+
           <div className="monthly-chart-card">
 
             <div className="monthly-chart-heading">
@@ -572,22 +804,15 @@ function MonthlyAnalytics() {
               </p>
             </div>
 
-            <ResponsiveContainer
-              width="100%"
-              height={320}
-            >
+            <ResponsiveContainer width="100%" height={320}>
               <BarChart data={filteredMonthlyData}>
 
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                />
+                <CartesianGrid strokeDasharray="3 3" />
 
                 <XAxis dataKey="month" />
 
                 <YAxis
-                  tickFormatter={(value) =>
-                    `${value} km`
-                  }
+                  tickFormatter={(value) => `${value} km`}
                 />
 
                 <Tooltip
@@ -617,7 +842,8 @@ function MonthlyAnalytics() {
 
           </div>
 
-          {/* Monthly Trip Activity */}
+          {/* MONTHLY TRIP ACTIVITY */}
+
           <div className="monthly-chart-card">
 
             <div className="monthly-chart-heading">
@@ -628,15 +854,10 @@ function MonthlyAnalytics() {
               </p>
             </div>
 
-            <ResponsiveContainer
-              width="100%"
-              height={300}
-            >
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={filteredMonthlyData}>
 
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                />
+                <CartesianGrid strokeDasharray="3 3" />
 
                 <XAxis dataKey="month" />
 
@@ -660,7 +881,8 @@ function MonthlyAnalytics() {
 
           </div>
 
-          {/* Monthly Summary Table */}
+          {/* MONTHLY SUMMARY TABLE */}
+
           <div className="monthly-table-card">
 
             <h3>Monthly Travel Summary</h3>
@@ -705,16 +927,16 @@ function MonthlyAnalytics() {
                       </td>
 
                       <td>
-                        ₹{item.petrolExpense.toFixed(2)}
+                        {formatCurrency(item.petrolExpense)}
                       </td>
 
                       <td>
-                        ₹{item.evExpense.toFixed(2)}
+                        {formatCurrency(item.evExpense)}
                       </td>
 
                       <td>
                         <strong>
-                          ₹{item.totalExpense.toFixed(2)}
+                          {formatCurrency(item.totalExpense)}
                         </strong>
                       </td>
 

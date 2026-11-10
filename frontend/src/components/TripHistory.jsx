@@ -359,71 +359,75 @@ function TripHistory() {
   // EXPORT TRIP HISTORY AS CSV
   // ==========================================
 
-  const exportTripsToCSV = () => {
-    if (trips.length === 0) {
-      alert("No trips available to export.");
-      return;
+
+const exportTripsToCSV = () => {
+  // Export currently filtered and sorted trips
+  if (sortedTrips.length === 0) {
+    alert("No matching trips available to export.");
+    return;
+  }
+
+  const headers = [
+    "Trip ID",
+    "Vehicle Type",
+    "Distance (KM)",
+    "Mileage / Efficiency",
+    "Fuel / Energy Consumed",
+    "Total Cost (INR)",
+    "Cost Per KM (INR)",
+    "Created At"
+  ];
+
+  // Escape CSV values and protect against formula injection
+  const escapeCSV = (value) => {
+    let safeValue = String(value ?? "");
+
+    if (/^[\s]*[=+\-@\t\r]/.test(safeValue)) {
+      safeValue = "'" + safeValue;
     }
 
-    const headers = [
-      "Trip ID",
-      "Vehicle Type",
-      "Distance (KM)",
-      "Mileage / Efficiency",
-      "Fuel / Energy Consumed",
-      "Total Cost (INR)",
-      "Cost Per KM (INR)",
-      "Created At"
-    ];
-
-    const escapeCSV = (value) => {
-      const safeValue = String(value ?? "");
-
-      return `"${safeValue.replace(/"/g, '""')}"`;
-    };
-
-    const rows = trips.map((trip) => [
-      trip.id,
-      trip.vehicle_type,
-      trip.distance_km,
-      trip.mileage ?? trip.efficiency ?? "",
-      trip.fuel_used_litres ?? trip.energy_used_kwh ?? "",
-      trip.total_cost,
-      trip.cost_per_km,
-      trip.created_at
-        ? new Date(trip.created_at).toLocaleString()
-        : ""
-    ]);
-
-    const csvContent = [
-      headers.map(escapeCSV).join(","),
-      ...rows.map((row) =>
-        row.map(escapeCSV).join(",")
-      )
-    ].join("\n");
-
-    const blob = new Blob(
-      ["\uFEFF" + csvContent],
-      {
-        type: "text/csv;charset=utf-8;"
-      }
-    );
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    const today = getLocalDate(new Date());
-
-    link.href = url;
-    link.download = `FuelWise_Trip_History_${today}.csv`;
-
-    document.body.appendChild(link);
-    link.click();
-
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
+    return `"${safeValue.replace(/"/g, '""')}"`;
   };
+
+  const rows = sortedTrips.map((trip) => [
+    trip.id,
+    trip.vehicle_type,
+    trip.distance_km,
+    trip.mileage ?? trip.efficiency ?? "",
+    trip.fuel_used_litres ?? trip.energy_used_kwh ?? "",
+    trip.total_cost,
+    trip.cost_per_km,
+    trip.created_at ?? ""
+  ]);
+
+  const csvContent = [
+    headers.map(escapeCSV).join(","),
+    ...rows.map((row) =>
+      row.map(escapeCSV).join(",")
+    )
+  ].join("\r\n");
+
+  const blob = new Blob(
+    ["\uFEFF" + csvContent],
+    { type: "text/csv;charset=utf-8;" }
+  );
+
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `FuelWise_Trip_History_${getLocalDate(new Date())}.csv`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  // Clean up temporary download URL
+  window.setTimeout(() => {
+    window.URL.revokeObjectURL(url);
+  }, 1000);
+};
+
 
   // ==========================================
   // LOADING STATE
