@@ -26,27 +26,56 @@ function TripHistory() {
   // FETCH SAVED TRIPS
   // ==========================================
 
-  const fetchTrips = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  
+    const fetchTrips = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-      const response = await fetch(`${API_URL}/api/trips`);
+        const response = await fetch(`${API_URL}/api/trips`);
 
-      if (!response.ok) {
-        throw new Error("Unable to fetch trip history");
+        let data;
+
+        try {
+          data = await response.json();
+        } catch {
+          throw new Error("Invalid response received from server.");
+        }
+
+        if (!response.ok) {
+          const detail = data?.detail;
+
+          const message = Array.isArray(detail)
+            ? detail.map((item) => item.msg).filter(Boolean).join(", ")
+            : typeof detail === "string"
+            ? detail
+            : "Unable to fetch trip history.";
+
+          throw new Error(message);
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid trip history data received.");
+        }
+
+        setTrips(data);
+
+      } catch (err) {
+        console.error("Trip History Error:", err);
+
+        if (err instanceof TypeError) {
+          setError(
+            "Unable to connect to FuelWise server. Please check whether the backend is running."
+          );
+        } else {
+          setError(err.message || "Unable to load trip history.");
+        }
+
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const data = await response.json();
-
-      setTrips(data);
-
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // ==========================================
   // DOWNLOAD INDIVIDUAL TRIP PDF

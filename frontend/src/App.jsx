@@ -1,6 +1,6 @@
 
 import TripHistory from "./components/TripHistory";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import CostComparisonChart from "./components/CostComparisonChart";
 import "./App.css";
 
@@ -18,10 +18,15 @@ function App() {
   const [result, setResult] = useState(null);
   const [comparison, setComparison] = useState(null);
 
-  // Independent loading states
+  // Loading states
   const [calculating, setCalculating] = useState(false);
   const [comparing, setComparing] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Synchronous locks prevent duplicate submissions
+  const calculateLock = useRef(false);
+  const compareLock = useRef(false);
+  const saveLock = useRef(false);
 
   const [error, setError] = useState("");
 
@@ -36,14 +41,23 @@ function App() {
   const validateTripInputs = (forComparison = false) => {
     const errors = [];
 
-    const isValidPositiveNumber = (value) =>
-      String(value).trim() !== "" &&
-      Number.isFinite(Number(value)) &&
-      Number(value) > 0;
+    const isValidPositiveNumber = (value) => {
+      if (String(value).trim() === "") {
+        return false;
+      }
+
+      const number = Number(value);
+
+      return (
+        Number.isFinite(number) &&
+        number > 0 &&
+        number <= 1000000000
+      );
+    };
 
     if (!isValidPositiveNumber(distance)) {
       errors.push(
-        "Trip distance must be a valid number greater than 0."
+        "Trip distance must be a valid number greater than 0 and not exceed 1,000,000,000."
       );
     }
 
@@ -107,8 +121,34 @@ function App() {
     return data;
   };
 
+  // Common API error handling
+  const handleApiError = (err, fallbackMessage) => {
+    console.error("FuelWise API Error:", err);
+
+    setError(
+      err.name === "TypeError"
+        ? "Unable to connect to the server. Please check your internet connection and backend."
+        : err.message || fallbackMessage
+    );
+  };
+
+  // Prevent invalid number keyboard input
+  const preventInvalidNumberKeys = (e) => {
+    if (["e", "E", "+", "-"].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   // Calculate individual trip
   const calculateTrip = async () => {
+    if (
+      calculateLock.current ||
+      compareLock.current ||
+      saveLock.current
+    ) {
+      return;
+    }
+
     const errors = validateTripInputs();
 
     if (errors.length > 0) {
@@ -118,6 +158,7 @@ function App() {
       return;
     }
 
+    calculateLock.current = true;
     setCalculating(true);
     setError("");
     setResult(null);
@@ -157,21 +198,32 @@ function App() {
 
       setResult(data);
     } catch (err) {
-      setError(
-        err.message || "Could not connect to the backend."
+      handleApiError(
+        err,
+        "Could not calculate your trip."
       );
     } finally {
+      calculateLock.current = false;
       setCalculating(false);
     }
   };
 
   // Save calculated trip to SQLite
   const saveTrip = async () => {
+    if (
+      saveLock.current ||
+      calculateLock.current ||
+      compareLock.current
+    ) {
+      return;
+    }
+
     if (!result) {
       setError("Please calculate your trip first.");
       return;
     }
 
+    saveLock.current = true;
     setSaving(true);
     setError("");
 
@@ -208,21 +260,30 @@ function App() {
       );
 
       // Refresh Trip History and Monthly Analytics
-      // Only after successful database save
       window.dispatchEvent(new Event("tripsUpdated"));
 
       alert("Trip saved successfully!");
     } catch (err) {
-      setError(
-        err.message || "Could not save trip."
+      handleApiError(
+        err,
+        "Could not save trip."
       );
     } finally {
+      saveLock.current = false;
       setSaving(false);
     }
   };
 
   // Compare Petrol and Electric vehicles
   const compareVehicles = async () => {
+    if (
+      compareLock.current ||
+      calculateLock.current ||
+      saveLock.current
+    ) {
+      return;
+    }
+
     const errors = validateTripInputs(true);
 
     if (errors.length > 0) {
@@ -231,6 +292,7 @@ function App() {
       return;
     }
 
+    compareLock.current = true;
     setComparing(true);
     setError("");
     setResult(null);
@@ -263,10 +325,12 @@ function App() {
 
       setComparison(data);
     } catch (err) {
-      setError(
-        err.message || "Could not connect to the backend."
+      handleApiError(
+        err,
+        "Could not compare vehicles."
       );
     } finally {
+      compareLock.current = false;
       setComparing(false);
     }
   };
@@ -330,6 +394,7 @@ function App() {
                     ? "vehicle-option active"
                     : "vehicle-option"
                 }
+                disabled={calculating || comparing || saving}
                 onClick={() => {
                   setVehicleType("petrol");
                   setResult(null);
@@ -347,6 +412,7 @@ function App() {
                     ? "vehicle-option active"
                     : "vehicle-option"
                 }
+                disabled={calculating || comparing || saving}
                 onClick={() => {
                   setVehicleType("ev");
                   setResult(null);
@@ -371,8 +437,11 @@ function App() {
                 id="distance"
                 type="number"
                 min="0.1"
+                max="1000000000"
                 step="any"
                 value={distance}
+                disabled={calculating || comparing || saving}
+                onKeyDown={preventInvalidNumberKeys}
                 onChange={(e) => {
                   setDistance(e.target.value);
                   setResult(null);
@@ -394,11 +463,15 @@ function App() {
                     id="mileage"
                     type="number"
                     min="0.1"
+                    max="1000000000"
                     step="any"
                     value={mileage}
+                    disabled={calculating || comparing || saving}
+                    onKeyDown={preventInvalidNumberKeys}
                     onChange={(e) => {
                       setMileage(e.target.value);
                       setResult(null);
+                      setComparison(null);
                       setError("");
                     }}
                     placeholder="Example: 45"
@@ -414,11 +487,15 @@ function App() {
                     id="petrolPrice"
                     type="number"
                     min="0.1"
+                    max="1000000000"
                     step="any"
                     value={petrolPrice}
+                    disabled={calculating || comparing || saving}
+                    onKeyDown={preventInvalidNumberKeys}
                     onChange={(e) => {
                       setPetrolPrice(e.target.value);
                       setResult(null);
+                      setComparison(null);
                       setError("");
                     }}
                     placeholder="Example: 105"
@@ -436,11 +513,15 @@ function App() {
                     id="efficiency"
                     type="number"
                     min="0.1"
+                    max="1000000000"
                     step="any"
                     value={efficiency}
+                    disabled={calculating || comparing || saving}
+                    onKeyDown={preventInvalidNumberKeys}
                     onChange={(e) => {
                       setEfficiency(e.target.value);
                       setResult(null);
+                      setComparison(null);
                       setError("");
                     }}
                     placeholder="Example: 40"
@@ -456,11 +537,15 @@ function App() {
                     id="electricityPrice"
                     type="number"
                     min="0.1"
+                    max="1000000000"
                     step="any"
                     value={electricityPrice}
+                    disabled={calculating || comparing || saving}
+                    onKeyDown={preventInvalidNumberKeys}
                     onChange={(e) => {
                       setElectricityPrice(e.target.value);
                       setResult(null);
+                      setComparison(null);
                       setError("");
                     }}
                     placeholder="Example: 8"
@@ -474,6 +559,7 @@ function App() {
           {/* Calculate Button */}
           <button
             className="primary-button"
+            type="button"
             onClick={calculateTrip}
             disabled={calculating || comparing || saving}
           >
@@ -543,6 +629,7 @@ function App() {
             {/* Save Trip Button */}
             <button
               className="primary-button"
+              type="button"
               onClick={saveTrip}
               disabled={saving || calculating || comparing}
             >
@@ -572,6 +659,7 @@ function App() {
 
           <button
             className="secondary-button"
+            type="button"
             onClick={compareVehicles}
             disabled={calculating || comparing || saving}
           >
