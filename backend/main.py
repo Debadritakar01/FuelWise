@@ -1,5 +1,7 @@
-
+import csv
+import io
 import logging
+
 from typing import Literal
 from datetime import datetime
 from io import BytesIO
@@ -558,6 +560,71 @@ def get_trip_history(
 
 
 # ==========================================
+# API 4.1: EXPORT ALL TRIPS AS CSV
+# ==========================================
+
+@app.get("/api/trips/export/csv")
+def export_trips_csv(
+    db: Session = Depends(get_db)
+):
+
+    trips = (
+        db.query(Trip)
+        .order_by(Trip.created_at.desc())
+        .all()
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow([
+        "Trip ID",
+        "Vehicle Type",
+        "Distance (KM)",
+        "Mileage (KM/L)",
+        "Petrol Price",
+        "EV Efficiency (KM/KWH)",
+        "Electricity Price",
+        "Fuel Used (Litres)",
+        "Energy Used (KWH)",
+        "Total Cost",
+        "Cost Per KM",
+        "Created At"
+    ])
+
+    for trip in trips:
+
+        writer.writerow([
+            trip.id,
+            trip.vehicle_type,
+            trip.distance_km,
+            trip.mileage,
+            trip.petrol_price,
+            trip.efficiency,
+            trip.electricity_price,
+            trip.fuel_used_litres,
+            trip.energy_used_kwh,
+            trip.total_cost,
+            trip.cost_per_km,
+            (
+                trip.created_at.isoformat()
+                if trip.created_at else ""
+            )
+        ])
+
+    output.seek(0)
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition":
+                'attachment; filename="fuelwise_trips.csv"'
+        }
+    )
+
+
+# ==========================================
 # API 5: GET ALL TRIPS (ALTERNATE ROUTE)
 # ==========================================
 
@@ -977,7 +1044,6 @@ def get_monthly_analytics(
     }
 
 
-
 # ==========================================
 # API 10: GENERATE PDF REPORT FOR A TRIP
 # ==========================================
@@ -987,6 +1053,7 @@ def download_trip_pdf(
     trip_id: int,
     db: Session = Depends(get_db)
 ):
+
     trip = (
         db.query(Trip)
         .filter(Trip.id == trip_id)
@@ -1002,11 +1069,14 @@ def download_trip_pdf(
     buffer = BytesIO()
 
     def format_number(value, decimals=2):
+
         if value is None:
             return "Not available"
+
         return f"{float(value):,.{decimals}f}"
 
     try:
+
         document = SimpleDocTemplate(
             buffer,
             pagesize=A4,
@@ -1065,6 +1135,7 @@ def download_trip_pdf(
         ]
 
         if trip.vehicle_type == "petrol":
+
             report_data.extend([
                 [
                     "Mileage",
@@ -1081,6 +1152,7 @@ def download_trip_pdf(
             ])
 
         elif trip.vehicle_type == "ev":
+
             report_data.extend([
                 [
                     "EV Efficiency",
@@ -1175,6 +1247,7 @@ def download_trip_pdf(
         )
 
     except Exception:
+
         buffer.close()
 
         logger.exception(
