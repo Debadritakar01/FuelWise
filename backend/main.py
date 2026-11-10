@@ -14,7 +14,7 @@ from sqlalchemy import func, extract, case
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -211,10 +211,11 @@ class TripRequest(BaseModel):
     )
 
     petrol_price: float | None = Field(
-        default=None,
-        gt=0,
-        allow_inf_nan=False
-    )
+    default=None,
+    ge=0,
+    allow_inf_nan=False,
+    description="Petrol price cannot be negative"
+)
 
     efficiency: float | None = Field(
         default=None,
@@ -223,10 +224,11 @@ class TripRequest(BaseModel):
     )
 
     electricity_price: float | None = Field(
-        default=None,
-        gt=0,
-        allow_inf_nan=False
-    )
+    default=None,
+    ge=0,
+    allow_inf_nan=False,
+    description="Electricity price cannot be negative"
+)
 
     @field_validator("vehicle_type", mode="before")
     @classmethod
@@ -286,6 +288,7 @@ class TripRequest(BaseModel):
         return self
 
 
+
 # ==========================================
 # PETROL VS EV COMPARISON REQUEST MODEL
 # ==========================================
@@ -294,28 +297,34 @@ class CompareRequest(BaseModel):
 
     distance: float = Field(
         gt=0,
-        allow_inf_nan=False
+        allow_inf_nan=False,
+        description="Distance must be greater than zero"
     )
 
     mileage: float = Field(
         gt=0,
-        allow_inf_nan=False
+        allow_inf_nan=False,
+        description="Mileage must be greater than zero"
     )
 
     petrol_price: float = Field(
-        gt=0,
-        allow_inf_nan=False
+        ge=0,
+        allow_inf_nan=False,
+        description="Petrol price cannot be negative"
     )
 
     efficiency: float = Field(
         gt=0,
-        allow_inf_nan=False
+        allow_inf_nan=False,
+        description="EV efficiency must be greater than zero"
     )
 
     electricity_price: float = Field(
-        gt=0,
-        allow_inf_nan=False
+        ge=0,
+        allow_inf_nan=False,
+        description="Electricity price cannot be negative"
     )
+
 
 
 # ==========================================
@@ -860,107 +869,59 @@ def delete_trip(
         )
 
 
+
 # ==========================================
 # API 9: MONTHLY TRIP ANALYTICS WITH FILTERS
 # ==========================================
 
 @app.get("/api/analytics/monthly")
 def get_monthly_analytics(
-    year: int | None = None,
-    month: int | None = None,
+    year: int | None = Query(
+        default=None,
+        ge=1,
+        le=9999,
+        description="Filter analytics by year"
+    ),
+    month: int | None = Query(
+        default=None,
+        ge=1,
+        le=12,
+        description="Filter analytics by month (1-12)"
+    ),
     db: Session = Depends(get_db)
 ):
 
-    if year is not None and year < 1:
-        raise HTTPException(
-            status_code=400,
-            detail="Year must be a positive number"
+    try:
+
+        # ==========================================
+        # FILTER TRIPS
+        # ==========================================
+
+        filtered_query = db.query(Trip).filter(
+            Trip.created_at.isnot(None)
         )
 
-    if month is not None and not 1 <= month <= 12:
-        raise HTTPException(
-            status_code=400,
-            detail="Month must be between 1 and 12"
-        )
+        if year is not None:
+            filtered_query = filtered_query.filter(
+                extract("year", Trip.created_at) == year
+            )
 
-    filtered_query = db.query(Trip).filter(
-        Trip.created_at.isnot(None)
-    )
+        if month is not None:
+            filtered_query = filtered_query.filter(
+                extract("month", Trip.created_at) == month
+            )
 
-    if year is not None:
-        filtered_query = filtered_query.filter(
-            extract("year", Trip.created_at) == year
-        )
+        # ==========================================
+        # OVERALL ANALYTICS
+        # ==========================================
 
-    if month is not None:
-        filtered_query = filtered_query.filter(
-            extract("month", Trip.created_at) == month
-        )
-
-    overall = filtered_query.with_entities(
-
-        func.count(Trip.id).label("total_trips"),
-
-        func.coalesce(
-            func.sum(Trip.distance_km), 0
-        ).label("total_distance"),
-
-        func.coalesce(
-            func.sum(Trip.total_cost), 0
-        ).label("total_expenses"),
-
-        func.coalesce(
-            func.sum(
-                case(
-                    (Trip.vehicle_type == "petrol", Trip.total_cost),
-                    else_=0
-                )
-            ), 0
-        ).label("petrol_expense"),
-
-        func.coalesce(
-            func.sum(
-                case(
-                    (Trip.vehicle_type == "ev", Trip.total_cost),
-                    else_=0
-                )
-            ), 0
-        ).label("ev_expense")
-
-    ).first()
-
-    month_key = func.strftime(
-        "%Y-%m", Trip.created_at
-    )
-
-    monthly_records = (
-        filtered_query.with_entities(
-
-            month_key.label("month_key"),
+        overall = filtered_query.with_entities(
 
             func.count(Trip.id).label("total_trips"),
 
             func.coalesce(
                 func.sum(Trip.distance_km), 0
             ).label("total_distance"),
-
-            func.coalesce(
-                func.sum(
-                    case(
-                        (Trip.vehicle_type == "petrol", Trip.distance_km),
-                        else_=0
-                    )
-                ), 0
-            ).label("petrol_distance"),
-
-            func.coalesce(
-                func.sum(
-                    case(
-                        (Trip.vehicle_type == "ev", Trip.distance_km),
-                        else_=0
-                    )
-                ), 0
-            ).label("ev_distance"),
 
             func.coalesce(
                 func.sum(Trip.total_cost), 0
@@ -984,80 +945,188 @@ def get_monthly_analytics(
                 ), 0
             ).label("ev_expense")
 
-        )
-        .group_by(month_key)
-        .order_by(month_key)
-        .all()
-    )
+        ).first()
 
-    monthly_data = []
+        # ==========================================
+        # MONTHLY ANALYTICS
+        # ==========================================
 
-    for record in monthly_records:
-
-        date_object = datetime.strptime(
-            record.month_key,
-            "%Y-%m"
+        month_key = func.strftime(
+            "%Y-%m",
+            Trip.created_at
         )
 
-        monthly_data.append({
+        monthly_records = (
+            filtered_query.with_entities(
 
-            "month": date_object.strftime("%B"),
-            "year": date_object.year,
+                month_key.label("month_key"),
 
-            "total_trips": record.total_trips,
+                func.count(Trip.id).label("total_trips"),
+
+                func.coalesce(
+                    func.sum(Trip.distance_km), 0
+                ).label("total_distance"),
+
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Trip.vehicle_type == "petrol",
+                                Trip.distance_km
+                            ),
+                            else_=0
+                        )
+                    ), 0
+                ).label("petrol_distance"),
+
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Trip.vehicle_type == "ev",
+                                Trip.distance_km
+                            ),
+                            else_=0
+                        )
+                    ), 0
+                ).label("ev_distance"),
+
+                func.coalesce(
+                    func.sum(Trip.total_cost), 0
+                ).label("total_expenses"),
+
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Trip.vehicle_type == "petrol",
+                                Trip.total_cost
+                            ),
+                            else_=0
+                        )
+                    ), 0
+                ).label("petrol_expense"),
+
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Trip.vehicle_type == "ev",
+                                Trip.total_cost
+                            ),
+                            else_=0
+                        )
+                    ), 0
+                ).label("ev_expense")
+
+            )
+            .group_by(month_key)
+            .order_by(month_key)
+            .all()
+        )
+
+        # ==========================================
+        # FORMAT MONTHLY DATA
+        # ==========================================
+
+        monthly_data = []
+
+        for record in monthly_records:
+
+            if not record.month_key:
+                continue
+
+            date_object = datetime.strptime(
+                record.month_key,
+                "%Y-%m"
+            )
+
+            monthly_data.append({
+
+                "month": date_object.strftime("%B"),
+                "year": date_object.year,
+
+                "total_trips": record.total_trips,
+
+                "total_distance": round(
+                    float(record.total_distance), 2
+                ),
+
+                "petrol_distance": round(
+                    float(record.petrol_distance), 2
+                ),
+
+                "ev_distance": round(
+                    float(record.ev_distance), 2
+                ),
+
+                "total_expenses": round(
+                    float(record.total_expenses), 2
+                ),
+
+                "petrol_expense": round(
+                    float(record.petrol_expense), 2
+                ),
+
+                "ev_expense": round(
+                    float(record.ev_expense), 2
+                )
+            })
+
+        # ==========================================
+        # FINAL RESPONSE
+        # ==========================================
+
+        return {
+
+            "success": True,
+
+            "filters": {
+                "year": year,
+                "month": month
+            },
+
+            "total_trips": overall.total_trips,
 
             "total_distance": round(
-                float(record.total_distance), 2
-            ),
-
-            "petrol_distance": round(
-                float(record.petrol_distance), 2
-            ),
-
-            "ev_distance": round(
-                float(record.ev_distance), 2
+                float(overall.total_distance), 2
             ),
 
             "total_expenses": round(
-                float(record.total_expenses), 2
+                float(overall.total_expenses), 2
             ),
 
             "petrol_expense": round(
-                float(record.petrol_expense), 2
+                float(overall.petrol_expense), 2
             ),
 
             "ev_expense": round(
-                float(record.ev_expense), 2
-            )
-        })
+                float(overall.ev_expense), 2
+            ),
 
-    return {
+            "monthly_data": monthly_data
+        }
 
-        "filters": {
-            "year": year,
-            "month": month
-        },
+    except SQLAlchemyError:
+        logger.exception(
+            "Monthly analytics database error"
+        )
 
-        "total_trips": overall.total_trips,
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve monthly analytics"
+        )
 
-        "total_distance": round(
-            float(overall.total_distance), 2
-        ),
+    except Exception:
+        logger.exception(
+            "Unexpected monthly analytics error"
+        )
 
-        "total_expenses": round(
-            float(overall.total_expenses), 2
-        ),
+        raise HTTPException(
+            status_code=500,
+            detail="Something went wrong while retrieving analytics"
+        )
 
-        "petrol_expense": round(
-            float(overall.petrol_expense), 2
-        ),
-
-        "ev_expense": round(
-            float(overall.ev_expense), 2
-        ),
-
-        "monthly_data": monthly_data
-    }
 
 
 # ==========================================
