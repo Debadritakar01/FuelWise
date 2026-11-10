@@ -1,11 +1,15 @@
-__pycache__/
-*.py[cod]
-venv/
-.venv/
-node_modules/
-dist/
-*.local
+# Environment variables
 .env
 .env.*
 !.env.example
-*.log
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
+# Testing
+.pytest_cache/
+
+# Database
+*.db

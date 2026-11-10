@@ -1,264 +1,413 @@
 # FuelWise – Smart Fuel Intelligence
 
-FuelWise is a full-stack web application that helps users calculate vehicle running costs, compare petrol and electric vehicles (EVs), track travel expenses, and understand potential savings through data-driven insights.
+FuelWise is a web-based trip cost estimation and vehicle expense analytics application. It helps users calculate petrol and electric vehicle (EV) running costs, compare expenses, save trip records, and analyze their travel history.
 
-The application provides trip management, cost analytics, historical records, and downloadable reports through an interactive dashboard.
+**Project Status (10 November 2026):** Core backend and frontend features have been implemented. Backend automated testing currently reports **37 passed, 1 skipped, and 0 failed**. Frontend manual verification and production deployment are the remaining major milestones.
+
+---
 
 ## Features
 
-### 1. Petrol and EV Cost Calculator
-- Calculate petrol consumption and trip expenses.
-- Calculate EV electricity consumption and charging costs.
-- Display total trip cost and cost per kilometre.
-- Validate user inputs to prevent invalid calculations.
+### 1. Petrol and EV Trip Estimation
+- Calculate petrol consumption using distance, mileage, and petrol price.
+- Calculate EV energy consumption using distance, efficiency, and electricity price.
+- Display total trip cost.
+- Calculate cost per kilometre.
+- Validate user inputs and reject invalid values.
 
 ### 2. Petrol vs EV Comparison
-- Compare petrol and EV running costs.
-- Calculate potential savings.
-- Calculate savings percentage.
-- Recommend the more economical vehicle.
+- Compare petrol and EV running costs for the same distance.
+- Calculate estimated savings.
+- Identify the more economical vehicle option.
 
-### 3. Trip Management
-- Save trip records in an SQLite database.
-- View complete trip history.
+### 3. Trip History Management
+- Save calculated trips in the database.
+- Retrieve saved trip records.
 - View individual trip details.
 - Edit existing trips.
-- Delete unwanted trips.
+- Delete saved trips.
+- Search and filter trip records.
+- Filter trips by vehicle type and date range.
 
-### 4. Dashboard and Analytics
-- Total number of trips.
-- Total distance travelled.
-- Total travel expenses.
-- Petrol and EV expense breakdown.
-- Average cost per kilometre.
-- Monthly expense analytics.
-- Interactive cost comparison charts.
+### 4. Analytics Dashboard
+- Display total trips.
+- Calculate total travel distance.
+- Calculate total expenses.
+- Separate petrol and EV expenses.
+- Display average cost per kilometre.
+- Visualize expenses and trip information through charts.
+- Track vehicle usage statistics.
 
-### 5. Report Generation
+### 5. CSV Export
+- Export saved trip records as CSV.
+- Download trip information in spreadsheet-friendly format.
+
+### 6. PDF Export
 - Generate individual trip reports in PDF format.
-- Export saved trip history to CSV format.
-- Download records for further analysis.
+- Display trip information and cost details.
+- Generate downloadable PDF reports using ReportLab.
 
-**Note:** CSV export has been added to the backend. Its Swagger registration and actual file download still require verification. PDF generation is implemented but its download test is pending.
+### 7. Security and Error Handling
+- Pydantic request validation.
+- Invalid input handling.
+- HTTP exception handling.
+- Database error handling.
+- General server error handling.
+- Logging for debugging and monitoring.
+- CORS configuration for frontend communication.
+
+---
 
 ## Technology Stack
 
-| Component | Technology |
+| Layer | Technology |
 |---|---|
-| Frontend | React.js |
-| Build Tool | Vite |
-| Backend | Python |
-| API Framework | FastAPI |
+| Frontend | React.js, Vite, JavaScript |
+| Styling | HTML, CSS |
+| Charts | Recharts |
+| Backend | Python, FastAPI |
 | Database | SQLite |
 | ORM | SQLAlchemy |
-| Data Validation | Pydantic |
-| Charts | Recharts |
+| Validation | Pydantic |
 | PDF Generation | ReportLab |
-| API Testing | Pytest |
-| API Documentation | Swagger UI |
+| CSV Export | Python CSV |
+| Testing | Pytest |
+| API Documentation | FastAPI Swagger |
+| Version Control | Git and GitHub |
 
-## Project Architecture
+---
 
-FuelWise follows a frontend-backend architecture.
+## Project Structure
 
-- **Frontend:** Collects user inputs and displays calculations, trip history, analytics and charts.
-- **Backend:** Handles calculations, business logic, API requests and database operations.
-- **Database:** Stores trip records using SQLite.
-- **API Communication:** React communicates with FastAPI through REST APIs.
+```text
+FuelWise/
+│
+├── backend/
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   ├── services/
+│   │   └── calculations.py
+│   ├── tests/
+│   ├── test_api.py
+│   ├── test_calculations.py
+│   ├── test_csv_export.py
+│   ├── test_pdf_export.py
+│   ├── test_security.py
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   └── vite.config.js
+│
+├── .gitignore
+└── README.md
+```
 
-## Backend API Endpoints
+*Note: Adjust the structure if your actual repository uses different filenames or folders.*
+
+---
+
+## API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/` | API home |
+| GET | `/` | Check backend status |
 | GET | `/health` | Health check |
 | POST | `/api/trip/estimate` | Calculate trip cost |
 | POST | `/api/compare` | Compare petrol and EV |
 | POST | `/api/trips/save` | Save a trip |
 | GET | `/api/trips` | Get trip history |
-| GET | `/trips` | Alternate trip history route |
-| GET | `/api/trips/export/csv` | Export trips as CSV |
 | GET | `/api/trips/{trip_id}` | Get individual trip |
 | PUT | `/api/trips/{trip_id}` | Update trip |
 | DELETE | `/api/trips/{trip_id}` | Delete trip |
-| GET | `/api/analytics/monthly` | Monthly analytics |
-| GET | `/api/trips/{trip_id}/pdf` | Download trip PDF |
+| GET | `/api/trips/export/csv` | Export trips as CSV |
+| GET | `/api/trips/{trip_id}/pdf` | Export individual trip as PDF |
 
-CSV export is implemented in the current backend code but still needs endpoint and download verification.
+Check the actual route names in FastAPI Swagger documentation:
+
+`http://127.0.0.1:8000/docs`
+
+---
+
+## Example Calculations
+
+| Vehicle | Distance | Efficiency | Energy Price | Expected Cost |
+|---|---:|---:|---:|---:|
+| Petrol | 100 km | 45 km/L | ₹105/L | ₹233.33 |
+| EV | 100 km | 40 km/kWh | ₹8/kWh | ₹20.00 |
+
+These examples are used to verify the calculation logic.
+
+---
 
 ## Installation and Setup
 
-### 1. Clone the repository
+### Prerequisites
+
+- Python 3.10 or higher
+- Node.js and npm
+- Git
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/Debadritakar01/FuelWise.git
-```
-
-```bash
 cd FuelWise
 ```
 
 ### 2. Backend Setup
 
-Navigate to the backend folder:
-
-```bash
+```powershell
 cd backend
-```
-
-Create a virtual environment:
-
-```bash
 python -m venv venv
-```
-
-Activate it on Windows:
-
-```bash
 venv\Scripts\activate
-```
-
-Install project dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
-Start the FastAPI server:
+Start the backend:
 
-```bash
+```powershell
 python -m uvicorn main:app --reload
 ```
 
 Backend URL:
 
-`http://127.0.0.1:8000`
+```text
+http://127.0.0.1:8000
+```
 
-Swagger API documentation:
+Swagger documentation:
 
-`http://127.0.0.1:8000/docs`
+```text
+http://127.0.0.1:8000/docs
+```
 
 ### 3. Frontend Setup
 
-Open another terminal and navigate to the frontend directory.
+Open another terminal:
 
-Install dependencies:
-
-```bash
+```powershell
+cd frontend
 npm install
-```
-
-Start the development server:
-
-```bash
 npm run dev
 ```
 
 Frontend URL:
 
-`http://localhost:5173`
-
-## Sample Calculations
-
-### Petrol Vehicle
-
-| Input | Value |
-|---|---:|
-| Distance | 100 km |
-| Mileage | 45 km/L |
-| Petrol Price | ₹105/L |
-| Fuel Consumed | 2.22 L |
-| Total Cost | ₹233.33 |
-| Cost per KM | ₹2.33 |
-
-### Electric Vehicle
-
-| Input | Value |
-|---|---:|
-| Distance | 100 km |
-| Efficiency | 40 km/kWh |
-| Electricity Price | ₹8/kWh |
-| Energy Consumed | 2.50 kWh |
-| Total Cost | ₹20.00 |
-| Cost per KM | ₹0.20 |
-
-### Potential Savings
-
-- Petrol Cost: ₹233.33
-- EV Cost: ₹20.00
-- Potential Savings: ₹213.33
-- Savings Percentage: 91.43%
-
-EV is more economical in this example.
-
-## Testing
-
-FuelWise uses Pytest for backend testing.
-
-Run the test suite:
-
-```bash
-python -m pytest -v
+```text
+http://localhost:5173
 ```
 
-### Previous Test Results
-
-- Total tests: 27
-- Passed: 27
-- Failed: 0
-
-The 27 tests passed before the latest CSV export changes. The complete test suite must be executed again after those changes.
-
-Additional verification underway:
-- Petrol vs EV comparison API.
-- Monthly analytics API.
-- CSV export and download.
-- PDF report download.
-- Frontend and backend integration.
-
-## Current Development Status
-
-| Feature | Status |
-|---|---|
-| Petrol cost calculation | Completed |
-| EV cost calculation | Completed |
-| Vehicle comparison | Implemented |
-| SQLite database | Completed |
-| Save trips | Completed |
-| Trip history | Completed |
-| Edit and delete trips | Completed |
-| Monthly analytics | Implemented |
-| Interactive charts | Implemented |
-| PDF report generation | Implemented; testing pending |
-| CSV export | Added; testing pending |
-| Backend automated tests | 27 passed previously |
-| Frontend integration testing | Upcoming |
-| Security and performance testing | Upcoming |
-| Deployment | Upcoming |
-
-## Future Improvements
-
-1. Complete CSV and PDF export verification.
-2. Perform complete frontend integration testing.
-3. Improve error handling and input validation.
-4. Conduct security and performance testing.
-5. Add user authentication and authorization.
-6. Deploy the frontend and backend.
-7. Configure a production database if required.
-8. Improve dashboard responsiveness and user experience.
-
-## Project Objective
-
-The main objective of FuelWise is to help users make informed vehicle-related financial decisions by comparing petrol and electric vehicle running costs, monitoring travel expenses, and identifying opportunities to save money.
-
-## Author
-
-**Debadrita Kar**
-
-GitHub: [Debadritakar01](https://github.com/Debadritakar01)
-
-Project Repository: [FuelWise – Smart Fuel Intelligence](https://github.com/Debadritakar01/FuelWise)
+Keep both servers running while using the application.
 
 ---
 
-*FuelWise – Making smarter and more economical travel decisions.*
+## Environment Configuration
+
+FuelWise is being prepared for production configuration using environment variables.
+
+Install the required package:
+
+```bash
+pip install python-dotenv
+```
+
+Create `backend/.env`:
+
+```env
+DATABASE_URL=sqlite:///./fuelwise.db
+FRONTEND_ORIGIN=http://localhost:5173
+```
+
+Create `backend/.env.example`:
+
+```env
+DATABASE_URL=sqlite:///./fuelwise.db
+FRONTEND_ORIGIN=http://localhost:5173
+```
+
+The backend should load these variables through `python-dotenv`.
+
+**Important:** Environment-based configuration must be verified in both `database.py` and `main.py` before this setup is considered complete.
+
+### Recommended .gitignore
+
+```gitignore
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
+# Testing
+.pytest_cache/
+
+# Database
+*.db
+
+# Frontend
+node_modules/
+dist/
+```
+
+Never upload actual credentials or `.env` files to GitHub.
+
+---
+
+## Backend Testing
+
+FuelWise uses Pytest for automated backend testing.
+
+Run all tests:
+
+```powershell
+python -m pytest -v
+```
+
+### Latest Test Results
+
+```text
+38 tests collected
+
+37 passed
+1 skipped
+0 failed
+```
+
+Test coverage includes:
+
+- API endpoints.
+- Petrol calculations.
+- EV calculations.
+- Input validation.
+- CSV export.
+- PDF export.
+- Trip history.
+
+### PDF Test Status
+
+The petrol PDF export test passed.
+
+The EV PDF export test was skipped because no saved EV trip was available.
+
+To verify the skipped test:
+
+1. Save an EV trip.
+2. Run:
+
+```powershell
+python -m pytest test_pdf_export.py -v
+```
+
+### Warning
+
+One Starlette/TestClient deprecation warning was reported. It did not affect the test results.
+
+---
+
+## Development Progress
+
+| Module | Status |
+|---|---|
+| React + Vite setup | Completed |
+| FastAPI backend | Completed |
+| Petrol calculation | Completed |
+| EV calculation | Completed |
+| Petrol vs EV comparison | Completed |
+| SQLite integration | Completed |
+| Save trip functionality | Completed |
+| Trip history | Completed |
+| View trip details | Completed |
+| Edit trip | Implemented |
+| Delete trip | Implemented |
+| Search and filters | Implemented |
+| Analytics dashboard | Implemented |
+| Charts and statistics | Implemented |
+| CSV export | Implemented and tested |
+| PDF export | Implemented and tested partially |
+| API validation | Implemented |
+| Error handling | Implemented |
+| Backend automated testing | 37 passed, 1 skipped |
+| Frontend manual testing | Pending confirmation |
+| Responsive UI testing | Pending confirmation |
+| Environment configuration | In progress |
+| Production database setup | Pending |
+| Backend deployment | Pending |
+| Frontend deployment | Pending |
+| Live application testing | Pending |
+
+---
+
+## Deployment Roadmap
+
+Deployment is the next major milestone.
+
+The planned hosting approach is:
+
+### Backend – Render
+
+Deploy the FastAPI backend.
+
+### Frontend – Vercel
+
+Deploy the React + Vite frontend.
+
+### Database
+
+Choose a persistent production database before deployment. SQLite may lose data on hosting platforms where the application filesystem is temporary or reset during redeployment.
+
+### Deployment Steps
+
+1. Complete frontend manual testing.
+2. Test responsive design on mobile, tablet, and desktop.
+3. Complete environment variable configuration.
+4. Configure production CORS.
+5. Select a persistent production database.
+6. Deploy FastAPI backend.
+7. Deploy React frontend.
+8. Connect the frontend to the deployed backend.
+9. Test all APIs on the live application.
+10. Update GitHub README with deployment links and screenshots.
+
+**Deployment status: Not yet deployed.**
+
+---
+
+## Future Enhancements
+
+- User authentication and registration.
+- Multiple vehicle profiles.
+- Live fuel price integration.
+- EV charging station integration.
+- Route-based distance calculation.
+- Advanced expense analytics.
+- Improved frontend automated testing.
+- Production database migration.
+- Cloud deployment.
+
+---
+
+## Important Notes
+
+- All calculations are estimates based on user-provided values.
+- Petrol mileage is measured in km/L.
+- EV efficiency is measured in km/kWh.
+- Actual expenses depend on vehicle condition, driving style, traffic, and local energy prices.
+- Do not commit sensitive configuration files or database credentials.
+- Keep this documentation updated as new features are completed.
+
+---
+
+**FuelWise – Smart Fuel Intelligence**
+
+*Plan your trip. Compare running costs. Understand your travel expenses.*

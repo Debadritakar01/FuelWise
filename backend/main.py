@@ -1,6 +1,10 @@
+
+import os
 import csv
 import io
 import logging
+
+from dotenv import load_dotenv
 
 from typing import Literal
 from datetime import datetime
@@ -38,6 +42,9 @@ from reportlab.platypus import (
 from services.calculations import calculate_petrol, calculate_ev
 from database import engine, get_db
 from models import Base, Trip
+
+load_dotenv()
+
 
 
 # ==========================================
@@ -159,20 +166,28 @@ async def general_exception_handler(request, exc):
     )
 
 
+
+
 # ==========================================
 # CORS CONFIGURATION
 # ==========================================
 
+frontend_origin = os.getenv(
+    "FRONTEND_ORIGIN",
+    "http://localhost:5173"
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
+        frontend_origin,
         "http://127.0.0.1:5173"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 # ==========================================
@@ -561,6 +576,7 @@ def get_trip_history(
 
 # ==========================================
 # API 4.1: EXPORT ALL TRIPS AS CSV
+# IMPORTANT: KEEP THIS BEFORE /{trip_id} ROUTES
 # ==========================================
 
 @app.get("/api/trips/export/csv")
